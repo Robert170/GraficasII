@@ -905,18 +905,18 @@ struct SimpleVertex
 	glm::vec2 texcoord;
 
 
-	int IDBone[4];
+	//int IDBone[4];
 
-	float  Weights[4] = { 0.0f };
+	//float  Weights[4] = { 0.0f };
 
-	//glm::vec3 msNormal;
+	glm::vec3 msNormal;
 
 	//
 	////XMFLOAT2 Tex;
 
-	//glm::vec3 msBinormal;
+	glm::vec3 msBinormal;
 
-	//glm::vec3 msTangent;
+	glm::vec3 msTangent;
 
 
 	//unsigned int Index[4];
@@ -945,19 +945,26 @@ struct CBChangeOnResize
 struct CBChangesEveryFrame
 {
 	glm::mat4x4 mWorld;
-	glm::vec4 vMeshColor;
+	//glm::vec4 vMeshColor;
 	/**< struct glm::mat4x4 mWorld. */
 	/**< structglm::vec4 vMeshColor. */
 	
-	glm::vec4 vViewPos;
+	//glm::vec4 vViewPos;
 
 	//XMFLOAT4 vMeshColor;
 };
 
 struct CBLight
 {
+	float KDiffuse;
+	float KAmbient;
+	float KSpecular;
+	float SpecularPower;
 
-	glm::vec4 lightDir;
+	//el light dir antes era un vec4
+	glm::vec3 lightDir;
+	glm::vec4 VViewPos;
+
 	glm::vec3 lightPointPos;
 	glm::vec4 lightPointAtt;
 };
@@ -966,4 +973,13 @@ struct CBBones
 {
 	glm::mat4 Bones_CB[100];
 };
+
+struct CBSuperSamplerAmbientOclusion 
+{
+	float KIntensity;
+	float KScale;
+	float KBias;
+	float KSample;
+};
+
 

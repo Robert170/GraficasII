@@ -121,7 +121,7 @@ CVertexShader						G_PVertexShader;
 CPixelShader						G_PPixelShader;
 
 //ID3D11PixelShader*                  g_pPixelShader = NULL;
-CInputLayer*						G_PInputLayer = new CInputLayer();
+CInputLayer						G_PInputLayer;
 //ID3D11InputLayout*                  g_pVertexLayout = NULL;
 CVertexBuffer*						g_VertexBuffer = new CVertexBuffer();
 CVertexBuffer*						g_VertexBufferMOD = new CVertexBuffer();
@@ -167,7 +167,14 @@ CTexture2D		TextureCAMInac;
 CGraphicApi GraphicApi;
 CSceneManager ScMana;
 
-CPase Pase;
+CPase GBuffer;
+
+CPase AmbientOclusionPase;
+CBuffer	AmbientOclusionBuffer;
+
+CPase SkyBoxPase;
+
+CPase LightPase;
 
 long long GetCurrentTimeMillis()
 {
@@ -816,6 +823,48 @@ HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR sz
 }
 #endif
 
+
+HRESULT CompileShaders(WCHAR* shaderfile, const char* vertexEntryPoint, const char* pixelEntryPoint, CVertexShader& VS, CPixelShader& PS, CInputLayer& InP)
+{
+	// Compile the vertex shader
+	HRESULT hr = CompileShaderFromFile(shaderfile, vertexEntryPoint, "vs_4_0", &VS.pVSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+
+	//// Create the vertex shader
+	hr = DeviceChido->g_pd3dDevice->CreateVertexShader(VS.pVSBlob->GetBufferPointer(), VS.pVSBlob->GetBufferSize(), NULL, &VS.g_pVertexShader);
+	if (FAILED(hr))
+	{
+		VS.pVSBlob->Release();
+		return hr;
+	}
+
+	//Create input layout from compiled VS
+	hr = CreateInputLayoutDescFromVertexShaderSignature(VS.pVSBlob, DeviceChido->g_pd3dDevice, &InP.g_pVertexLayout);
+	if (FAILED(hr))
+		return hr;
+
+	// Compile the pixel shader
+	hr = CompileShaderFromFile(shaderfile, pixelEntryPoint, "ps_4_0", &PS.pPSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+
+	// Create the pixel shader
+	hr = DeviceChido->g_pd3dDevice->CreatePixelShader(PS.pPSBlob->GetBufferPointer(), PS.pPSBlob->GetBufferSize(), NULL, &PS.g_pPixelShader);
+	PS.pPSBlob->Release();
+	if (FAILED(hr))
+		return hr;
+}
+
+
 //! A InitDeviceOGL function.
 	/*!
 	  Function of opengl for init window, create shader, load model, and render.
@@ -1338,22 +1387,22 @@ HRESULT InitDevice()
 	PASSE_DIRECTX_STRUCT PassD;
 
 	//ID3DBlob* pVSBlob = NULL;
-	hr = CompileShaderFromFile(L"Tutorial07.fx", "vs_main", "vs_4_0", &G_PVertexShader.pVSBlob);
-	if (FAILED(hr))
-	{
-		MessageBox(NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-		return hr;
-	}
+	//hr = CompileShaderFromFile(L"Tutorial07.fx", "vs_main", "vs_4_0", &G_PVertexShader.pVSBlob);
+	//if (FAILED(hr))
+	//{
+	//	MessageBox(NULL,
+	//		L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+	//	return hr;
+	//}
 
-	// Create the vertex shader
-	hr = DeviceChido->g_pd3dDevice->CreateVertexShader(G_PVertexShader.pVSBlob->GetBufferPointer(), G_PVertexShader.pVSBlob->GetBufferSize(), NULL, &G_PVertexShader.g_pVertexShader);
-	/*hr = g_pd3dDevice->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pVertexShader );*/
-	if (FAILED(hr))
-	{
-		G_PVertexShader.pVSBlob->Release();
-		return hr;
-	}
+	//// Create the vertex shader
+	//hr = DeviceChido->g_pd3dDevice->CreateVertexShader(G_PVertexShader.pVSBlob->GetBufferPointer(), G_PVertexShader.pVSBlob->GetBufferSize(), NULL, &G_PVertexShader.g_pVertexShader);
+	///*hr = g_pd3dDevice->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pVertexShader );*/
+	//if (FAILED(hr))
+	//{
+	//	G_PVertexShader.pVSBlob->Release();
+	//	return hr;
+	//}
 
 	// Define the input layout
    /* D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -1366,38 +1415,38 @@ HRESULT InitDevice()
 */
 
 // Create the input layout
-	hr = CreateInputLayoutDescFromVertexShaderSignature(G_PVertexShader.pVSBlob, DeviceChido->g_pd3dDevice, &G_PInputLayer->g_pVertexLayout);
-	if (FAILED(hr))
-		return hr;
+	//hr = CreateInputLayoutDescFromVertexShaderSignature(G_PVertexShader.pVSBlob, DeviceChido->g_pd3dDevice, &G_PInputLayer.g_pVertexLayout);
+	//if (FAILED(hr))
+	//	return hr;
 
 	/*hr = ptrDEV->CreateInputLayout(layout, numElements, G_PVertexShader.pVSBlob->GetBufferPointer(),
 		G_PVertexShader.pVSBlob->GetBufferSize(), &G_PInputLayer->g_pVertexLayout);*/
 		/*  hr = g_pd3dDevice->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 												pVSBlob->GetBufferSize(), &g_pVertexLayout );*/
-	G_PVertexShader.pVSBlob->Release();
+	/*G_PVertexShader.pVSBlob->Release();
 	if (FAILED(hr))
-		return hr;
+		return hr;*/
 
 	// Set the input layout
-	DeviceContextChido->g_pImmediateContext->IASetInputLayout(G_PInputLayer->g_pVertexLayout);
+	DeviceContextChido->g_pImmediateContext->IASetInputLayout(G_PInputLayer.g_pVertexLayout);
 	/* g_pImmediateContext->IASetInputLayout( g_pVertexLayout );*/
 
 	 // Compile the pixel shader
 	 //ID3DBlob* pPSBlob = NULL;
-	hr = CompileShaderFromFile(L"Tutorial07.fx", "ps_main", "ps_4_0", &G_PPixelShader.pPSBlob);
-	if (FAILED(hr))
-	{
-		MessageBox(NULL,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-		return hr;
-	}
+	//hr = CompileShaderFromFile(L"Tutorial07.fx", "ps_main", "ps_4_0", &G_PPixelShader.pPSBlob);
+	//if (FAILED(hr))
+	//{
+	//	MessageBox(NULL,
+	//		L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+	//	return hr;
+	//}
 
-	// Create the pixel shader
-	hr = DeviceChido->g_pd3dDevice->CreatePixelShader(G_PPixelShader.pPSBlob->GetBufferPointer(), G_PPixelShader.pPSBlob->GetBufferSize(), NULL, &G_PPixelShader.g_pPixelShader);
-	/*hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShader );*/
-	G_PPixelShader.pPSBlob->Release();
-	if (FAILED(hr))
-		return hr;
+	//// Create the pixel shader
+	//hr = DeviceChido->g_pd3dDevice->CreatePixelShader(G_PPixelShader.pPSBlob->GetBufferPointer(), G_PPixelShader.pPSBlob->GetBufferSize(), NULL, &G_PPixelShader.g_pPixelShader);
+	///*hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pPixelShader );*/
+	//G_PPixelShader.pPSBlob->Release();
+	//if (FAILED(hr))
+	//	return hr;
 
 	
 
@@ -1707,7 +1756,7 @@ HRESULT InitDevice()
 	InacTx.Width = width;
 	InacTx.Height = height;
 	InacTx.MipLevels = InacTx.ArraySize = 1;
-	InacTx.Format = FORMAT_R8G8B8A8_UNORM;
+	InacTx.Format = FORMAT_R16G16B16A16_FLOAT;
 	InacTx.SampleDesc.Count = 1;
 	InacTx.Usage = C_USAGE_DEFAULT;
 	InacTx.BindFlags = 8 | 32;		
@@ -1755,15 +1804,21 @@ HRESULT InitDevice()
 	ImGui::StyleColorsDark();
 
 
-	RefScene = GraphicApi.ChargeMesh("Modelo/ENANO/dwarf.x", &ScMana, GraphicApi.m_Model, DeviceContextChido, DeviceChido->g_pd3dDevice, RefImporter);
+	RefScene = GraphicApi.ChargeMesh("Modelo/Rana/Battletoad_posed.obj", &ScMana, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "Modelo/Rana/battletoad_d.dds", "Modelo/Rana/battletoad_m.dds", "Modelo/Rana/battletoad_n.dds");
 		
-	PassD.IntLay = G_PInputLayer;
-	PassD.PixShader = &G_PPixelShader;
-	PassD.VertShader = &G_PVertexShader;
-	PassD.ViewPort = &ViewPort;
-	PassD.p_BoneBuffer = &BufferOfBones;
+	PassD.DevConTextStruct = DeviceContextChido;
+	PassD.RenTarViewCount = 4;
+	PassD.DevStruc = DeviceChido;
+	PassD.TexStruct = InacTx;
+	ZeroMemory(&PassD.RDStateStruct, sizeof(PassD.RDStateStruct));
+	PassD.RDStateStruct.FillMode = D3D11_FILL_SOLID;
+	PassD.RDStateStruct.CullMode = D3D11_CULL_FRONT;
+	PassD.RDStateStruct.FrontCounterClockwise = true;
 
-	Pase.initDX(PassD);
+	CompileShaders(L"GBuffer.fx", "vs_main", "ps_main", GBuffer.m_VertShader, GBuffer.m_PixShader, GBuffer.m_IntLay);
+
+	GBuffer.initDX(PassD);
+
 #endif
 	
     return S_OK;
@@ -1800,7 +1855,7 @@ void CleanupDevice()
    /* if( g_pVertexBuffer ) g_pVertexBuffer->Release();*/
     if( g_pIndexBuffer.BIndex.P_Buffer ) g_pIndexBuffer.BIndex.P_Buffer->Release();
 	
-		if (G_PInputLayer->g_pVertexLayout) G_PInputLayer->g_pVertexLayout->Release();
+		if (G_PInputLayer.g_pVertexLayout) G_PInputLayer.g_pVertexLayout->Release();
   /*  if( g_pVertexLayout ) g_pVertexLayout->Release();*/
 	if (G_PVertexShader.g_pVertexShader) G_PVertexShader.g_pVertexShader->Release();
     /*if( g_pVertexShader ) g_pVertexShader->Release();*/
@@ -2405,14 +2460,17 @@ void Render()
  //   // Present our back buffer to our front buffer
  //   //
 	
-
+	float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
+	GBuffer.SetPass(&G_PDepthStencilView);
+	GBuffer.Clear(ClearColor, &G_PDepthStencilView);
+	
 	std::vector<glm::mat4> Transform;
 
 	float RunTime = GetRunnigTime();
 
-	GraphicApi.BonesTrasnformation(RunTime, Transform, RefScene, &ScMana);
+	//GraphicApi.BonesTrasnformation(RunTime, Transform, RefScene, &ScMana);
 
-	CBBones CbBones;
+	/*CBBones CbBones;
 
 	for (int i = 0; i < Transform.size(); i++)
 	{
@@ -2422,7 +2480,7 @@ void Render()
 		}
 	}
 
-	DeviceContextChido->g_pImmediateContext->UpdateSubresource(BufferOfBones.P_Buffer, 0, NULL, &CbBones, 0, 0);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(BufferOfBones.P_Buffer, 0, NULL, &CbBones, 0, 0);*/
 
 
 	CBLight LDR;
@@ -2431,7 +2489,7 @@ void Render()
 	LDR.lightPointPos = lightPos;
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightDir.P_Buffer, 0, NULL, &LDR, 0, 0);
 
-	float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
+	
 
 	DeviceContextChido->g_pImmediateContext->ClearRenderTargetView(G_PRenderTargetView.g_pRenderTargetView, ClearColor);
 
@@ -2447,12 +2505,16 @@ void Render()
 		0,0,0,1
 	};
 
-	cbMesh.vMeshColor = { 1.0f,1.0f,1.0f,1.0f };
-
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(MainCamera->g_pCBChangesEveryFrame.P_Buffer, 0, NULL, &cbMesh, 0, 0);
 
-	Pase.Render(G_PRenderTargetView, G_PDepthStencilView, DeviceContextChido, ScMana, MainCamera, &LightDir);
-	
+	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(0, 1, &MainCamera->g_pCBNeverChanges.P_Buffer);
+	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(1, 1, &MainCamera->g_pCBChangeOnResize.P_Buffer);
+	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(2, 1, &MainCamera->g_pCBChangesEveryFrame.P_Buffer);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(2, 1, &MainCamera->g_pCBChangeOnResize.P_Buffer);
+
+	//GBuffer.Render(G_PRenderTargetView, G_PDepthStencilView, DeviceContextChido, ScMana, MainCamera, &LightDir);
+	GBuffer.Draw(&ScMana);
+
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 	SwapChainChido->g_pSwapChain->Present(0, 0);

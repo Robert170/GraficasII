@@ -89,13 +89,16 @@ public:
 	/*!
 	  variable ID3D11ShaderResourceView pointer for texture difuse, only for D3D11.
 	*/
-	ID3D11ShaderResourceView*	m_TexDif = NULL;
+	ID3D11ShaderResourceView*	m_TexDif;
 
 	//! A public variable.
 	/*!
 	  variable ID3D11ShaderResourceView pointer for texture normal, only for D3D11.
 	*/
-	ID3D11ShaderResourceView*	m_TexNorm = NULL;
+	ID3D11ShaderResourceView*	m_TexNorm;
+	ID3D11ShaderResourceView* m_TexSpecular;
+
+
 #endif // D3D11
 
 

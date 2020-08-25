@@ -126,7 +126,7 @@ public:
 	/*!
 	  variable  D3D11_INPUT_ELEMENT_DESC , only whit D3D11.
 	*/
-	D3D11_INPUT_ELEMENT_DESC layout[];
+	D3D11_INPUT_ELEMENT_DESC layout;
 #endif
 };
 

@@ -73,7 +73,7 @@ public:
 	  \param _dev an void.
 	*/
 	const aiScene*
-		ChargeMesh(const char* _meshPath, CSceneManager* _sceneManager, const aiScene* _model, CDeviceContext* _devCont, void* _dev, Assimp::Importer* Imp);
+		ChargeMesh(const char* _meshPath, CSceneManager* _sceneManager, const aiScene* _model, CDeviceContext* _devCont, CDevice* _dev, Assimp::Importer* Imp, const char* Diffpath, const char* SpecularPath, const char* Normalpath);
 
 	//std::vector<MatrixForBone> MatrixBone;
 
@@ -91,7 +91,7 @@ private:
 	  \param _dev an void.
 	*/
 	void
-		MeshRead(const aiScene* _model, CMesh* _mesh, int _meshIndex, void* _dev);
+		MeshRead(const aiScene* _model, CMesh* _mesh, int _meshIndex, CDevice* _dev);
 
 	//! A private function.
 	/*!
@@ -102,7 +102,7 @@ private:
 	  \param _dev an void.
 	*/
 	void
-		ReadTextureMesh(const aiScene* _model, CMesh* _mesh, int _meshIndex, void* _dev);
+		ReadTextureMesh(const aiScene* _model, CMesh* _mesh, int _meshIndex, CDevice* _dev);
 
 	const aiNodeAnim * AnimatinFindNode(const std::string NameNod, const aiAnimation * Anim);
 

@@ -26,7 +26,7 @@ CGraphicApi::~CGraphicApi()
 	  \param _importer an Assimp::Importer.
 	  \param _dev an void.
 	*/
-const aiScene* CGraphicApi::ChargeMesh(const char* _meshPath, CSceneManager* _sceneManager, const aiScene* _model, CDeviceContext* _devCont, void* _dev, Assimp::Importer* Imp)
+const aiScene* CGraphicApi::ChargeMesh(const char* _meshPath, CSceneManager* _sceneManager, const aiScene* _model, CDeviceContext* _devCont, CDevice* _dev, Assimp::Importer* Imp, const char* Diffpath, const char* SpecularPath, const char* Normalpath)
 {
 
 	_model = Imp->ReadFile
@@ -59,7 +59,30 @@ const aiScene* CGraphicApi::ChargeMesh(const char* _meshPath, CSceneManager* _sc
 	std::string dirName = newmesh->m_Materials->m_Diroftextures;
 
 	MeshRead(_model, newmesh, 0, _dev);
-	ReadTextureMesh(_model, newmesh, 0, _dev);
+	//ReadTextureMesh(_model, newmesh, 0, _dev);
+
+	if (Diffpath != "")
+	{
+		wchar_t wtext[50];
+		mbstowcs(wtext, Diffpath, strlen(Diffpath) + 1);
+		LPWSTR ptr = wtext;
+		D3DX11CreateShaderResourceViewFromFile(_dev->g_pd3dDevice, ptr, NULL, NULL, &newmesh->m_Materials->m_TexDif, NULL);
+	}
+	if (Normalpath != "")
+	{
+		wchar_t wtext[50];
+		mbstowcs(wtext, Normalpath, strlen(Normalpath) + 1);
+		LPWSTR ptr = wtext;
+		D3DX11CreateShaderResourceViewFromFile(_dev->g_pd3dDevice, ptr, NULL, NULL, &newmesh->m_Materials->m_TexNorm, NULL);
+	}
+	if (SpecularPath != "")
+	{
+		wchar_t wtext[50];
+		mbstowcs(wtext, SpecularPath, strlen(SpecularPath) + 1);
+		LPWSTR ptr = wtext;
+		D3DX11CreateShaderResourceViewFromFile(_dev->g_pd3dDevice, ptr, NULL, NULL, &newmesh->m_Materials->m_TexSpecular, NULL);
+	}
+
 	_sceneManager->AddMesh(newmesh);
 
 	if (_model->mNumMeshes > 1) {
@@ -71,7 +94,7 @@ const aiScene* CGraphicApi::ChargeMesh(const char* _meshPath, CSceneManager* _sc
 			newmesh->AddChildren(childmesh);
 			childmesh->m_Materials->m_Diroftextures = dirName;
 			MeshRead(_model, childmesh, i, _dev);
-			ReadTextureMesh(_model, childmesh, i, _dev);
+			//ReadTextureMesh(_model, childmesh, i, _dev);
 			_sceneManager->AddMesh(childmesh);
 		}
 	}
@@ -123,7 +146,7 @@ void CGraphicApi::BonesTrasnformation(float Time, std::vector<glm::mat4>& Transf
 	  \param _meshIndex an int.
 	  \param _dev an void.
 	*/
-void CGraphicApi::MeshRead(const aiScene * _model, CMesh * _mesh, int _meshIndex, void * _dev)
+void CGraphicApi::MeshRead(const aiScene * _model, CMesh * _mesh, int _meshIndex, CDevice * _dev)
 {
 	std::vector <std::uint32_t> indis;
 	indis.reserve(_model->mMeshes[_meshIndex]->mNumFaces * 3);
@@ -135,38 +158,38 @@ void CGraphicApi::MeshRead(const aiScene * _model, CMesh * _mesh, int _meshIndex
 	SimpleVertex* meshVertex = new SimpleVertex[numVertex];
 	WORD* meshIndex = new WORD[numVIndex];
 
-	for (int i = 0; i < NumBones; i++)
-	{
-		//obtener nombre del hueso en base al mesh
-		int BoneIndex = 0;
-		std::string BoneName(_model->mMeshes[_meshIndex]->mBones[i]->mName.data);
+	//for (int i = 0; i < NumBones; i++)
+	//{
+	//	//obtener nombre del hueso en base al mesh
+	//	int BoneIndex = 0;
+	//	std::string BoneName(_model->mMeshes[_meshIndex]->mBones[i]->mName.data);
 
-		//revisar si el mesh tiene el hueso, si esta indice
-		if (_mesh->m_BoneMapping.find(BoneName) == _mesh->m_BoneMapping.end())
-		{
-			BoneIndex = _mesh->m_NumBones;
-			_mesh->m_NumBones++;
-			BONES_INFO bi;
-			_mesh->m_BoneInfo.push_back(bi);
-		}
-		//si no tine lo agrega
-		else
-		{
-			BoneIndex = _mesh->m_BoneMapping[BoneName];
-		}
+	//	//revisar si el mesh tiene el hueso, si esta indice
+	//	if (_mesh->m_BoneMapping.find(BoneName) == _mesh->m_BoneMapping.end())
+	//	{
+	//		BoneIndex = _mesh->m_NumBones;
+	//		_mesh->m_NumBones++;
+	//		BONES_INFO bi;
+	//		_mesh->m_BoneInfo.push_back(bi);
+	//	}
+	//	//si no tine lo agrega
+	//	else
+	//	{
+	//		BoneIndex = _mesh->m_BoneMapping[BoneName];
+	//	}
 
-		_mesh->m_BoneMapping[BoneName] = BoneIndex;
-		_mesh->m_BoneInfo[BoneIndex].Bone_Offset = glm::transpose(glm::make_mat4(&_model->mMeshes[_meshIndex]->mBones[i]->mOffsetMatrix.a1));
+	//	_mesh->m_BoneMapping[BoneName] = BoneIndex;
+	//	_mesh->m_BoneInfo[BoneIndex].Bone_Offset = glm::transpose(glm::make_mat4(&_model->mMeshes[_meshIndex]->mBones[i]->mOffsetMatrix.a1));
 
-		for (int j = 0; j < _model->mMeshes[_meshIndex]->mBones[i]->mNumWeights; j++)
-		{
-			for (int k = 0; k < 4; k++)
-			{
-				meshVertex[_model->mMeshes[_meshIndex]->mBones[i]->mWeights[j].mVertexId].IDBone[k] = BoneIndex;
-				meshVertex[_model->mMeshes[_meshIndex]->mBones[i]->mWeights[j].mVertexId].Weights[k] = _model->mMeshes[_meshIndex]->mBones[i]->mWeights[j].mWeight;
-			}
-		}
-	}
+	//	for (int j = 0; j < _model->mMeshes[_meshIndex]->mBones[i]->mNumWeights; j++)
+	//	{
+	//		for (int k = 0; k < 4; k++)
+	//		{
+	//			meshVertex[_model->mMeshes[_meshIndex]->mBones[i]->mWeights[j].mVertexId].IDBone[k] = BoneIndex;
+	//			meshVertex[_model->mMeshes[_meshIndex]->mBones[i]->mWeights[j].mVertexId].Weights[k] = _model->mMeshes[_meshIndex]->mBones[i]->mWeights[j].mWeight;
+	//		}
+	//	}
+	//}
 
 	
 	for (std::uint32_t faceIdx = 0u; faceIdx < _model->mMeshes[_meshIndex]->mNumFaces; faceIdx++)
@@ -176,28 +199,26 @@ void CGraphicApi::MeshRead(const aiScene * _model, CMesh * _mesh, int _meshIndex
 		indis.push_back(_model->mMeshes[_meshIndex]->mFaces[faceIdx].mIndices[2u]);
 	}
 
-	
-
 	for (int i = 0; i < numVertex; i++)
 	{
 		meshVertex[i].msPos.x = _model->mMeshes[_meshIndex]->mVertices[i].x;
 		meshVertex[i].msPos.y = _model->mMeshes[_meshIndex]->mVertices[i].y;
 		meshVertex[i].msPos.z = _model->mMeshes[_meshIndex]->mVertices[i].z;
 
-	/*	meshVertex[i].msNormal.x = _model->mMeshes[_meshIndex]->mNormals[i].x;
+		meshVertex[i].msNormal.x = _model->mMeshes[_meshIndex]->mNormals[i].x;
 		meshVertex[i].msNormal.y = _model->mMeshes[_meshIndex]->mNormals[i].y;
-		meshVertex[i].msNormal.z = _model->mMeshes[_meshIndex]->mNormals[i].z;*/
+		meshVertex[i].msNormal.z = _model->mMeshes[_meshIndex]->mNormals[i].z;
 
 		meshVertex[i].texcoord.x = _model->mMeshes[_meshIndex]->mTextureCoords[0][i].x;
 		meshVertex[i].texcoord.y = _model->mMeshes[_meshIndex]->mTextureCoords[0][i].y;
 
-		/*meshVertex[i].msBinormal.x = _model->mMeshes[_meshIndex]->mBitangents[i].x;
+		meshVertex[i].msBinormal.x = _model->mMeshes[_meshIndex]->mBitangents[i].x;
 		meshVertex[i].msBinormal.y = _model->mMeshes[_meshIndex]->mBitangents[i].y;
 		meshVertex[i].msBinormal.z = _model->mMeshes[_meshIndex]->mBitangents[i].z;
 
 		meshVertex[i].msTangent.x = _model->mMeshes[_meshIndex]->mTangents[i].x;
 		meshVertex[i].msTangent.y = _model->mMeshes[_meshIndex]->mTangents[i].y;
-		meshVertex[i].msTangent.z = _model->mMeshes[_meshIndex]->mTangents[i].z;*/
+		meshVertex[i].msTangent.z = _model->mMeshes[_meshIndex]->mTangents[i].z;
 		
 	}
 
@@ -229,7 +250,7 @@ void CGraphicApi::MeshRead(const aiScene * _model, CMesh * _mesh, int _meshIndex
 	  \param _meshIndex an int.
 	  \param _dev an void.
 	*/
-void CGraphicApi::ReadTextureMesh(const aiScene * _model, CMesh * _mesh, int _meshIndex, void * _dev)
+void CGraphicApi::ReadTextureMesh(const aiScene * _model, CMesh * _mesh, int _meshIndex, CDevice * _dev)
 {
 	const aiMaterial* pMaterial = _model->mMaterials[_model->mMeshes[_meshIndex]->mMaterialIndex];
 
@@ -259,7 +280,7 @@ void CGraphicApi::ReadTextureMesh(const aiScene * _model, CMesh * _mesh, int _me
 			dir = (LPCWSTR)wstr.c_str();
 			//ID3D11Device* dev = static_cast<ID3D11Device*>(_dev);
 #ifdef D3D11
-			D3DX11CreateShaderResourceViewFromFile(static_cast<ID3D11Device*>(_dev), dir, NULL, NULL, &_mesh->m_Materials->m_TexDif, NULL);
+			D3DX11CreateShaderResourceViewFromFile(_dev->g_pd3dDevice, dir, NULL, NULL, &_mesh->m_Materials->m_TexDif, NULL);
 #endif // DEBUG
 
 			

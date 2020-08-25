@@ -85,8 +85,8 @@ public:
 	  ID3D11Buffer*   P_Buffer = NULL;.
 	*/
 #if defined(D3D11)
-	static void createVertexBuffer(int _numvertex, const aiScene* _model, SimpleVertex* _vertex, ID3D11Buffer*& _buffer, void* _dev);
-	static void createIndexBuffer(int numindices, const aiScene* _model, WORD* _index, ID3D11Buffer*& _buffer, void* _dev);
+	static void createVertexBuffer(int _numvertex, const aiScene* _model, SimpleVertex* _vertex, ID3D11Buffer*& _buffer, CDevice* _dev);
+	static void createIndexBuffer(int numindices, const aiScene* _model, WORD* _index, ID3D11Buffer*& _buffer, CDevice* _dev);
 	D3D11_BUFFER_DESC bd;
 	ID3D11Buffer*   P_Buffer = NULL;
 	

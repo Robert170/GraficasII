@@ -57,9 +57,9 @@ void CBuffer::render()
 	  \param _dev an void pointer.
 	*/
 #ifdef D3D11
-void CBuffer::createVertexBuffer(int _numvertex, const aiScene * _model, SimpleVertex * _vertex, ID3D11Buffer *& _buffer, void * _dev)
+void CBuffer::createVertexBuffer(int _numvertex, const aiScene * _model, SimpleVertex * _vertex, ID3D11Buffer *& _buffer, CDevice * _dev)
 {
-	ID3D11Device* dev = static_cast<ID3D11Device*>(_dev);
+	ID3D11Device* dev = _dev->g_pd3dDevice;
 	D3D11_BUFFER_DESC bd;
 	D3D11_SUBRESOURCE_DATA InitData;
 
@@ -83,9 +83,9 @@ void CBuffer::createVertexBuffer(int _numvertex, const aiScene * _model, SimpleV
 	  \param _buffer an ID3D11Buffer pointer.
 	  \param _dev an void pointer.
 	*/
-void CBuffer::createIndexBuffer(int numindices, const aiScene * _model, WORD * _index, ID3D11Buffer *& _buffer, void * _dev)
+void CBuffer::createIndexBuffer(int numindices, const aiScene * _model, WORD * _index, ID3D11Buffer *& _buffer, CDevice* _dev)
 {
-	ID3D11Device* dev = static_cast<ID3D11Device*>(_dev);
+	ID3D11Device* dev = _dev->g_pd3dDevice;
 	D3D11_BUFFER_DESC bd;
 	D3D11_SUBRESOURCE_DATA InitData;
 

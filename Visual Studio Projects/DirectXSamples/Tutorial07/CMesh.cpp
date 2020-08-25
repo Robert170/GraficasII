@@ -14,7 +14,7 @@ CMesh::CMesh()
 		0,0,1,0.010,
 		0,0,0,1
 	};
-	m_MeshData.vMeshColor = { 1,0,0,1 };
+	//m_MeshData.vMeshColor = { 1,0,0,1 };
 
 	m_NumBones = 0;
 }
@@ -62,7 +62,7 @@ void CMesh::Render(CDeviceContext * _devCont, CBuffer * _bufferData, CDevice * _
 		0,0,1,0.0010,
 		0,0,0,1
 	};
-	m_MeshData.vMeshColor = { 1,0,0,1 };
+	//m_MeshData.vMeshColor = { 1,0,0,1 };
 	_devCont->g_pImmediateContext->PSSetShaderResources(0, 1, &m_Materials->m_TexDif);
 	_devCont->g_pImmediateContext->VSSetShaderResources(0, 1, &m_Materials->m_TexDif);
 

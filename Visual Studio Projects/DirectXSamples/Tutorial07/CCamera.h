@@ -18,7 +18,7 @@
 #include "CBuffer.h"
 #include "includes/gtc/matrix_transform.hpp"
 #include "includes/gtx/rotate_vector.hpp"
-#include <xnamath.h>
+//#include <xnamath.h>
 
 
 
