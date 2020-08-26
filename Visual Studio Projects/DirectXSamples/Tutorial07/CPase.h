@@ -87,6 +87,7 @@ public:
 	//para render targert de otros pases
 	std::vector<ID3D11ShaderResourceView*> m_vShadResView;
 
+	std::vector<ID3D11ShaderResourceView*> m_vImGuiPase;
 
 	int initDX(PASSE_DIRECTX_STRUCT& _C_Pase_DESC);
 #endif

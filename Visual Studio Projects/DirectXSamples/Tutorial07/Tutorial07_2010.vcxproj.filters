@@ -113,5 +113,11 @@
     <FxCompile Include="GBuffer.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="AmbientOc.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Skybox.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

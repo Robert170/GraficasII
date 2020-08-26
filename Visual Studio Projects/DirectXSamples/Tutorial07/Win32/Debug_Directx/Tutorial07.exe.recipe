@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <ProjectOutputs>C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Tutorial07.exe</ProjectOutputs>
-  <ContentFiles>C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\GBuffer.cso;C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Lambert.cso</ContentFiles>
+  <ContentFiles>C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\AmbientOc.cso;C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\GBuffer.cso;C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Lambert.cso;C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Skybox.cso</ContentFiles>
   <SatelliteDlls></SatelliteDlls>
   <NonRecipeFileRefs></NonRecipeFileRefs>
 </Project>

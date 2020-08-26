@@ -1,2 +1,4 @@
 C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Lambert.cso
 C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\GBuffer.cso
+C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\AmbientOc.cso
+C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Skybox.cso

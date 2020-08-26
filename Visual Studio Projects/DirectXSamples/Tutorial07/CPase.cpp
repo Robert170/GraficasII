@@ -44,6 +44,22 @@ int CPase::initDX(PASSE_DIRECTX_STRUCT & _C_Pase_DESC)
 
 		m_vRenTarView.push_back(RenT);
 
+		D3D11_SHADER_RESOURCE_VIEW_DESC ShReView;
+
+		ShReView.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		ShReView.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		ShReView.Texture2D.MostDetailedMip = 0;
+		ShReView.Texture2D.MipLevels = 1;
+
+		ID3D11ShaderResourceView* Srv;
+
+		hr = _C_Pase_DESC.DevStruc->g_pd3dDevice->CreateShaderResourceView(TexT2D->m_pTexture, &ShReView, &Srv);
+
+		if (FAILED(hr))
+		{
+			return -1;
+		}
+		m_vImGuiPase.push_back(Srv);
 		_C_Pase_DESC.DevStruc->g_pd3dDevice->CreateRasterizerState(&_C_Pase_DESC.RDStateStruct, &m_RasState);	
 	}
 #else 

@@ -166,6 +166,8 @@ CTexture2D		TextureCAMInac;
 
 CGraphicApi GraphicApi;
 CSceneManager ScMana;
+CSceneManager ScManaAlinequad;
+CSceneManager ScManaSkyBox;
 
 CPase GBuffer;
 
@@ -515,7 +517,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			ImGui_ImplDX11_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			ImGui::Begin("Change");
+			/*ImGui::Begin("Change");
 
 
 
@@ -527,35 +529,34 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 				MainCamera = TEMP;
 			}
 
+			ImGui::End();*/
+
+			ImGui::Begin("Pases");
 			
-			
+			if (ImGui::CollapsingHeader("GBuffer"))
+			{
+				for (int i = 0; i < GBuffer.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(GBuffer.m_vImGuiPase.at(i), ImVec2{ 150,510 });
+				}
 
-			ImGui::End();
-			ImGui::Begin("DirectX11 Texture Test");
+			}
+			if (ImGui::CollapsingHeader("AmbientOclusion"))
+			{
+				for (int i = 0; i < AmbientOclusionPase.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(AmbientOclusionPase.m_vImGuiPase.at(i), ImVec2{ 150,150 });
+				}
 
-			ImGui::Image(g_ShaderResource.G_PInactiveRV, Texture_Size);
+			}
+			if (ImGui::CollapsingHeader("SkyBox"))
+			{
+				for (int i = 0; i < SkyBoxPase.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(SkyBoxPase.m_vImGuiPase.at(i), ImVec2{ 150,150 });
+				}
 
-			ImGui::GetIO().FontGlobalScale;
-
-			ImGui::End();
-
-			ImGui::Begin("Light Direction");
-			ImGui::SliderFloat("Dirx", &lightDir.x, -1, 1, "%0.1f", 0.5f);
-			ImGui::SliderFloat("Diry", &lightDir.y, -1, 1, "%0.1f", 0.5f);
-			ImGui::SliderFloat("Dirz", &lightDir.z, -1, 1, "%0.1f", 0.5f);
-			ImGui::End();
-
-
-			ImGui::Begin("Light Position");
-			ImGui::SliderFloat("Posx", &lightPos.x, -100, 100, "%0.1f", 0.5f);
-			ImGui::SliderFloat("Posy", &lightPos.y, -100, 100, "%0.1f", 0.5f);
-			ImGui::SliderFloat("Posz", &lightPos.z, -100, 100, "%0.1f", 0.5f);
-			ImGui::End();
-
-
-			ImGui::Begin("Light Attenuation");
-		
-			ImGui::SliderFloat("Atte", &lightAtt.y, 0, 2, "%0.1f", 0.5f);
+			}
 		
 
 			ImGui::End();
@@ -1423,11 +1424,11 @@ HRESULT InitDevice()
 		G_PVertexShader.pVSBlob->GetBufferSize(), &G_PInputLayer->g_pVertexLayout);*/
 		/*  hr = g_pd3dDevice->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
 												pVSBlob->GetBufferSize(), &g_pVertexLayout );*/
-	/*G_PVertexShader.pVSBlob->Release();
-	if (FAILED(hr))
-		return hr;*/
+												/*G_PVertexShader.pVSBlob->Release();
+												if (FAILED(hr))
+													return hr;*/
 
-	// Set the input layout
+													// Set the input layout
 	DeviceContextChido->g_pImmediateContext->IASetInputLayout(G_PInputLayer.g_pVertexLayout);
 	/* g_pImmediateContext->IASetInputLayout( g_pVertexLayout );*/
 
@@ -1448,7 +1449,7 @@ HRESULT InitDevice()
 	//if (FAILED(hr))
 	//	return hr;
 
-	
+
 
 	// Create vertex buffer
 	SimpleVertex vertices[] =
@@ -1679,50 +1680,50 @@ HRESULT InitDevice()
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightDir.P_Buffer, 0, NULL, &LD, 0, 0);
 #endif
 
-    // Initialize the world matrices
+	// Initialize the world matrices
 	g_World = glm::mat4(1.0f);
-		//XMMatrixIdentity();
+	//XMMatrixIdentity();
 
-    // Initialize the view matrix
-	glm::vec3 Eye = { 0.0f, 5.0f, -6.0f };
-	glm::vec3 At = { 0.0f, 1.0f, 0.0f };
+// Initialize the view matrix
+	glm::vec3 Eye = { 10.0f, 0.0f, 0.0f };
+	glm::vec3 At = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 Up = { 0.0f, 1.0f, 0.0f };
-   /* XMVECTOR Eye = XMVectorSet( 0.0f, 3.0f, -6.0f, 0.0f );
-    XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-    XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );*/
+	/* XMVECTOR Eye = XMVectorSet( 0.0f, 3.0f, -6.0f, 0.0f );
+	 XMVECTOR At = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
+	 XMVECTOR Up = XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );*/
 
 	CCameraDatas D;
-	
-	D.Posicion=Eye;
-	D.At=At;
-	D.Up=Up; //referencia al mundo
-	D.W=width;
-	D.H=height;
-	D.Near=0.1f;
-	D.Far=1000;
-	D.Fov= XM_PIDIV4;
-	
+
+	D.Posicion = Eye;
+	D.At = At;
+	D.Up = Up; //referencia al mundo
+	D.W = width;
+	D.H = height;
+	D.Near = 0.1f;
+	D.Far = 1000;
+	D.Fov = XM_PIDIV4;
+
 	CAM.Init(D);
 
-	Eye = { 0.0f, 20.0f, -6.0f };
-	At = { 0.0f, -1.0f, 0.0f };
-	Up = { 0.0f, 0.0f, 1.0f };
+	Eye = { 10.0f, 0.0f, 0.0f };
+	At = { 0.0f, 0.0f, 0.0f };
+	Up = { 0.0f, 1.0f, 0.0f };
 	D.Posicion = Eye;
 	D.At = At;
 	D.Up = Up;
 
 	GODCAM.Init(D);
 
-    //g_View = XMMatrixLookAtLH( Eye, At, Up );
+	//g_View = XMMatrixLookAtLH( Eye, At, Up );
 
-    CBNeverChanges cbNeverChanges;
+	CBNeverChanges cbNeverChanges;
 	cbNeverChanges.mView = CAM.GetView();//XMMatrixTranspose( g_View );
 #ifdef D3D11
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(CAM.g_pCBNeverChanges.P_Buffer, 0, NULL, &cbNeverChanges, 0, 0);
 
-    /*g_pImmediateContext->UpdateSubresource( g_pCBNeverChanges, 0, NULL, &cbNeverChanges, 0, 0 );*/
+	/*g_pImmediateContext->UpdateSubresource( g_pCBNeverChanges, 0, NULL, &cbNeverChanges, 0, 0 );*/
 	//CURRENTNEVERCHANGE.P_Buffer = MainCamera->g_pCBNeverChanges.P_Buffer;
-    // Initialize the projection matrix
+	// Initialize the projection matrix
 	 //XMMatrixPerspectiveFovLH( XM_PIDIV4, width / (FLOAT)height, 0.01f, 100.0f );
 #endif
 
@@ -1738,7 +1739,7 @@ HRESULT InitDevice()
 #endif
 
 
-    CBChangeOnResize cbChangesOnResize;
+	CBChangeOnResize cbChangesOnResize;
 	cbChangesOnResize.mProjection = CAM.GetProyeccion();//XMMatrixTranspose( g_Projection );
 #ifdef D3D11
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(CAM.g_pCBChangeOnResize.P_Buffer, 0, NULL, &cbChangesOnResize, 0, 0);
@@ -1747,7 +1748,7 @@ HRESULT InitDevice()
 	cbChangesOnResize2.mProjection = GODCAM.GetProyeccion();//XMMatrixTranspose( g_Projection );
 #ifdef D3D11
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(GODCAM.g_pCBChangeOnResize.P_Buffer, 0, NULL, &cbChangesOnResize2, 0, 0);
-    /*g_pImmediateContext->UpdateSubresource( g_pCBChangeOnResize, 0, NULL, &cbChangesOnResize, 0, 0 );*/
+	/*g_pImmediateContext->UpdateSubresource( g_pCBChangeOnResize, 0, NULL, &cbChangesOnResize, 0, 0 );*/
 
 	//CURRENTCHANGEONRESIZE.P_Buffer = MainCamera->g_pCBChangeOnResize.P_Buffer;
 
@@ -1759,7 +1760,7 @@ HRESULT InitDevice()
 	InacTx.Format = FORMAT_R16G16B16A16_FLOAT;
 	InacTx.SampleDesc.Count = 1;
 	InacTx.Usage = C_USAGE_DEFAULT;
-	InacTx.BindFlags = 8 | 32;		
+	InacTx.BindFlags = 8 | 32;
 	InacTx.CPUAccessFlags = 65536;
 	InacTx.MiscFlags = 0;
 
@@ -1795,7 +1796,7 @@ HRESULT InitDevice()
 	MainCamera = &CAM;
 	SecondCamera = &GODCAM;
 
-	
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -1803,9 +1804,10 @@ HRESULT InitDevice()
 	ImGui_ImplDX11_Init(DeviceChido->g_pd3dDevice, DeviceContextChido->g_pImmediateContext);
 	ImGui::StyleColorsDark();
 
+	//gbuffer
 
 	RefScene = GraphicApi.ChargeMesh("Modelo/Rana/Battletoad_posed.obj", &ScMana, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "Modelo/Rana/battletoad_d.dds", "Modelo/Rana/battletoad_m.dds", "Modelo/Rana/battletoad_n.dds");
-		
+
 	PassD.DevConTextStruct = DeviceContextChido;
 	PassD.RenTarViewCount = 4;
 	PassD.DevStruc = DeviceChido;
@@ -1818,6 +1820,72 @@ HRESULT InitDevice()
 	CompileShaders(L"GBuffer.fx", "vs_main", "ps_main", GBuffer.m_VertShader, GBuffer.m_PixShader, GBuffer.m_IntLay);
 
 	GBuffer.initDX(PassD);
+
+	//ambient oclussion
+	PassD.RenTarViewCount = 1;
+	PassD.RDStateStruct.CullMode = D3D11_CULL_NONE;
+
+	CompileShaders(L"AmbientOc.fx", "vs_main", "ps_main", AmbientOclusionPase.m_VertShader, AmbientOclusionPase.m_PixShader, AmbientOclusionPase.m_IntLay);
+
+	GraphicApi.ChargeMesh("Modelo/ScreenAlignedQuad.3ds", &ScManaAlinequad, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
+
+	AmbientOclusionPase.initDX(PassD);
+
+	C_Buffer_DESC BufferAmbient;
+	BufferAmbient.Usage = C_USAGE_DEFAULT;
+	BufferAmbient.ByteWidth = sizeof(CBSuperSamplerAmbientOclusion);
+	BufferAmbient.BindFlags = 4;
+	BufferAmbient.CPUAccessFlags = 0;
+
+	AmbientOclusionBuffer.init(BufferAmbient);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&AmbientOclusionBuffer.bd, NULL, &AmbientOclusionBuffer.P_Buffer);
+	if (FAILED(hr))
+		return hr;
+
+	CBSuperSamplerAmbientOclusion CBAmbient;
+	CBAmbient.KIntensity = 8.2f;
+	CBAmbient.KScale = 0.5f;
+	CBAmbient.KBias = 0.1f;
+	CBAmbient.KSample = 2.4f;
+
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(AmbientOclusionBuffer.P_Buffer, 0, NULL, &CBAmbient, 0, 0);
+
+	AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(2));
+	AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(0));
+
+	//sky box
+	CompileShaders(L"Skybox.fx", "vs_main", "ps_main", SkyBoxPase.m_VertShader, SkyBoxPase.m_PixShader, SkyBoxPase.m_IntLay);
+
+	SkyBoxPase.initDX(PassD);
+
+	GraphicApi.ChargeMesh("Modelo/Sphere.3ds", &ScManaSkyBox, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
+
+	D3DX11_IMAGE_LOAD_INFO ImageLoadInfo;
+
+	ImageLoadInfo.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	ID3D11Texture2D* Texture2D;
+
+	hr = D3DX11CreateTextureFromFile(DeviceChido->g_pd3dDevice, L"Modelo/grace_cube.dds", &ImageLoadInfo, 0, (ID3D11Resource**)&Texture2D, 0);
+	if (FAILED(hr))
+		return hr;
+
+	D3D11_TEXTURE2D_DESC TexDesc;
+	Texture2D->GetDesc(&TexDesc);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC ShReViDesc;
+
+	ZeroMemory(&ShReViDesc, sizeof(ShReViDesc));
+
+	ShReViDesc.Format = TexDesc.Format;
+	ShReViDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+	ShReViDesc.TextureCube.MipLevels = TexDesc.MipLevels;
+	ShReViDesc.TextureCube.MostDetailedMip = 0;
+
+	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(Texture2D, &ShReViDesc, &ScManaSkyBox.GetMesh(0)->m_Materials->m_TexDif);
+	if (FAILED(hr))
+		return hr;
 
 #endif
 	
@@ -2514,6 +2582,30 @@ void Render()
 
 	//GBuffer.Render(G_PRenderTargetView, G_PDepthStencilView, DeviceContextChido, ScMana, MainCamera, &LightDir);
 	GBuffer.Draw(&ScMana);
+
+	//ambient oclusion
+
+	AmbientOclusionPase.SetPass(&G_PDepthStencilView);
+	AmbientOclusionPase.Clear(ClearColor, &G_PDepthStencilView);
+
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &AmbientOclusionBuffer.P_Buffer);
+
+	AmbientOclusionPase.Draw(&ScManaAlinequad);
+
+	//sky box
+	SkyBoxPase.SetPass(&G_PDepthStencilView);
+	SkyBoxPase.Clear(ClearColor, &G_PDepthStencilView);
+
+	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(0, 1, &MainCamera->g_pCBNeverChanges.P_Buffer);
+	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(1, 1, &MainCamera->g_pCBChangeOnResize.P_Buffer);
+	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(2, 1, &MainCamera->g_pCBChangesEveryFrame.P_Buffer);
+
+	SkyBoxPase.Draw(&ScManaSkyBox);
+
+	//////////
+
+	DeviceContextChido->g_pImmediateContext->OMSetRenderTargets(1, &G_PRenderTargetView.g_pRenderTargetView, G_PDepthStencilView.g_pDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->ClearRenderTargetView(G_PRenderTargetView.g_pRenderTargetView, ClearColor);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
