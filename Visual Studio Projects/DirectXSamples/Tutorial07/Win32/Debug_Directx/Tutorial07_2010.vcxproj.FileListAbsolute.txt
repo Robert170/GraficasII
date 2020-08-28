@@ -8,3 +8,4 @@ C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutori
 C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\BlurV.cso
 C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\Bright.cso
 C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\FillBright.cso
+C:\Users\Xc170\Desktop\Proyecto_Lei\Visual Studio Projects\DirectXSamples\Tutorial07\bin\Debug_Directx\TownMap.cso

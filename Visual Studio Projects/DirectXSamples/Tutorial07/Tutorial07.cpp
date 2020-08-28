@@ -618,7 +618,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			}
 
 			ImGui::End();*/
-
+			//show demo window
+			ImGui::ShowDemoWindow();
 			ImGui::Begin("Pases");
 			
 			if (ImGui::CollapsingHeader("GBuffer"))
@@ -988,7 +989,6 @@ HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR sz
 }
 #endif
 
-
 HRESULT CompileShaders(WCHAR* shaderfile, const char* vertexEntryPoint, const char* pixelEntryPoint, CVertexShader& VS, CPixelShader& PS, CInputLayer& InP)
 {
 	// Compile the vertex shader
@@ -1029,7 +1029,591 @@ HRESULT CompileShaders(WCHAR* shaderfile, const char* vertexEntryPoint, const ch
 		return hr;
 }
 
+void CreateBlur1(C_Buffer_DESC& FillBriDesc, C_Buffer_DESC& BluHDesc, PASSE_DIRECTX_STRUCT& PassD)
+{
+	RECT rc;
+	GetClientRect(g_hWnd, &rc);
+	unsigned int width = rc.right - rc.left;
+	unsigned int height = rc.bottom - rc.top;
 
+	HRESULT hr = S_OK;
+	//Blur 1 H
+	Blur1_H.initDX(PassD, -1);
+	Blur1_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+
+	CompileShaders(L"BlurH.fx", "vs_main", "ps_main", Blur1_H.m_VertShader, Blur1_H.m_PixShader, Blur1_H.m_IntLay);
+
+
+	BluHDesc.Usage = C_USAGE_DEFAULT;
+	BluHDesc.ByteWidth = sizeof(CBBlur);
+	BluHDesc.BindFlags = 4;
+	BluHDesc.CPUAccessFlags = 0;
+
+	Blur1Buffer_H.init(BluHDesc);
+
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur1Buffer_H.bd, NULL, &Blur1Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	Blur1CB_H.MipLevel = 4;
+	Blur1CB_H.Viewport.x = width;
+
+	//Blur 1 V
+	Blur1_V.initDX(PassD, -1);
+	Blur1_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+
+	CompileShaders(L"BlurV.fx", "vs_main", "ps_main", Blur1_V.m_VertShader, Blur1_V.m_PixShader, Blur1_V.m_IntLay);
+
+	Blur1Buffer_V.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur1Buffer_V.bd, NULL, &Blur1Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	Blur1CB_V.MipLevel = 4;
+	Blur1CB_V.Viewport.x = height;
+
+	//Fill Bright1  
+	FillBright_1.initDX(PassD, -1);
+
+	FillBright_1.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_1.m_vShadResView.push_back(Blur1_H.m_vImGuiPase[0]);
+	FillBright_1.m_vShadResView.push_back(Blur1_V.m_vImGuiPase[0]);
+
+	CompileShaders(L"FillBright.fx", "vs_main", "ps_main", FillBright_1.m_VertShader, FillBright_1.m_PixShader, FillBright_1.m_IntLay);
+
+
+	FillBriDesc.Usage = C_USAGE_DEFAULT;
+	FillBriDesc.ByteWidth = sizeof(CBFillBright);
+	FillBriDesc.BindFlags = 4;
+	FillBriDesc.CPUAccessFlags = 0;
+
+	FillBrightBuffer_1.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_1.bd, NULL, &FillBrightBuffer_1.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	FillBrightCB_1.MipLevel.x = 3;
+}
+
+void CreateBlur2(C_Buffer_DESC& FillBriDesc, C_Buffer_DESC& BluHDesc, PASSE_DIRECTX_STRUCT& PassD)
+{
+	RECT rc;
+	GetClientRect(g_hWnd, &rc);
+	unsigned int width = rc.right - rc.left;
+	unsigned int height = rc.bottom - rc.top;
+
+	HRESULT hr = S_OK;
+
+	//Blur 2 H
+	PassD.RenTarViewCount = 0;
+	Blur2_H.initDX(PassD, -1);
+
+	Blur2_H.m_VertShader = Blur1_H.m_VertShader;
+	Blur2_H.m_PixShader = Blur1_H.m_PixShader;
+
+	Blur2_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur2_H.m_vImGuiPase.push_back(Blur1_H.m_vImGuiPase[0]);
+	Blur2_H.m_vRenTarView.push_back(Blur1_H.m_vRenTarView[0]);
+
+	/*Blur2_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur2_H.m_vRenTarView.push_back(Blur1_H.m_vRenTarView[0]);*/
+
+	Blur2Buffer_H.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur2Buffer_H.bd, NULL, &Blur2Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	Blur2CB_H.MipLevel = 3;
+	Blur2CB_H.Viewport.x = width;
+
+	//Blur 2 V
+
+	Blur2_V.initDX(PassD, -1);
+
+	Blur2_V.m_VertShader = Blur1_V.m_VertShader;
+	Blur2_V.m_PixShader = Blur1_V.m_PixShader;
+
+	Blur2_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur2_V.m_vImGuiPase.push_back(Blur1_V.m_vImGuiPase[0]);
+	Blur2_V.m_vRenTarView.push_back(Blur1_V.m_vRenTarView[0]);
+
+	Blur2Buffer_V.init(BluHDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur2Buffer_V.bd, NULL, &Blur2Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	Blur2CB_V.MipLevel = 3;
+	Blur2CB_V.Viewport.x = height;
+
+	//Fill Bright 2  
+
+	FillBright_2.initDX(PassD, -1);
+
+	FillBright_2.m_VertShader = FillBright_1.m_VertShader;
+	FillBright_2.m_PixShader = FillBright_1.m_PixShader;
+
+	FillBright_2.m_vImGuiPase.push_back(FillBright_1.m_vImGuiPase[0]);
+	FillBright_2.m_vRenTarView.push_back(FillBright_1.m_vRenTarView[0]);
+
+	FillBright_2.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_2.m_vShadResView.push_back(Blur2_H.m_vImGuiPase[0]);
+	FillBright_2.m_vShadResView.push_back(Blur2_V.m_vImGuiPase[0]);
+
+	FillBrightBuffer_2.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_2.bd, NULL, &FillBrightBuffer_2.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	FillBrightCB_2.MipLevel.x = 2;
+}
+
+void CreateBlur3(C_Buffer_DESC& FillBriDesc, C_Buffer_DESC& BluHDesc, PASSE_DIRECTX_STRUCT& PassD)
+{
+	RECT rc;
+	GetClientRect(g_hWnd, &rc);
+	unsigned int width = rc.right - rc.left;
+	unsigned int height = rc.bottom - rc.top;
+
+	HRESULT hr = S_OK;
+
+	//Blur 3 H
+	Blur3_H.initDX(PassD, -1);
+
+	Blur3_H.m_VertShader = Blur2_H.m_VertShader;
+	Blur3_H.m_PixShader = Blur2_H.m_PixShader;
+
+	Blur3_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur3_H.m_vImGuiPase.push_back(Blur2_H.m_vImGuiPase[0]);
+	Blur3_H.m_vRenTarView.push_back(Blur2_H.m_vRenTarView[0]);
+
+	Blur3Buffer_H.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur3Buffer_H.bd, NULL, &Blur3Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return ;
+	}
+
+	Blur3CB_H.MipLevel = 2;
+	Blur3CB_H.Viewport.x = width;
+
+	//Blur 3 V
+
+	Blur3_V.initDX(PassD, -1);
+
+	Blur3_V.m_VertShader = Blur2_V.m_VertShader;
+	Blur3_V.m_PixShader = Blur2_V.m_PixShader;
+
+	Blur3_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur3_V.m_vImGuiPase.push_back(Blur2_V.m_vImGuiPase[0]);
+	Blur3_V.m_vRenTarView.push_back(Blur2_V.m_vRenTarView[0]);
+
+	Blur3Buffer_V.init(BluHDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur3Buffer_V.bd, NULL, &Blur3Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return ;
+	}
+
+	Blur3CB_V.MipLevel = 2;
+	Blur3CB_V.Viewport.x = height;
+
+	//Fill Bright 3
+
+	FillBright_3.initDX(PassD, 5);
+
+	FillBright_3.m_VertShader = FillBright_2.m_VertShader;
+	FillBright_3.m_PixShader = FillBright_2.m_PixShader;
+
+	FillBright_3.m_vImGuiPase.push_back(FillBright_2.m_vImGuiPase[0]);
+	FillBright_3.m_vRenTarView.push_back(FillBright_2.m_vRenTarView[0]);
+
+	FillBright_3.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_3.m_vShadResView.push_back(Blur3_H.m_vImGuiPase[0]);
+	FillBright_3.m_vShadResView.push_back(Blur3_V.m_vImGuiPase[0]);
+
+	FillBrightBuffer_3.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_3.bd, NULL, &FillBrightBuffer_3.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	FillBrightCB_3.MipLevel.x = 1;
+}
+
+void CreateBlur4(C_Buffer_DESC& FillBriDesc, C_Buffer_DESC& BluHDesc, PASSE_DIRECTX_STRUCT& PassD)
+{
+	RECT rc;
+	GetClientRect(g_hWnd, &rc);
+	unsigned int width = rc.right - rc.left;
+	unsigned int height = rc.bottom - rc.top;
+
+	HRESULT hr = S_OK;
+
+	//Blur 4 H
+	Blur4_H.initDX(PassD, 5);
+
+	Blur4_H.m_VertShader = Blur3_H.m_VertShader;
+	Blur4_H.m_PixShader = Blur3_H.m_PixShader;
+
+	Blur4_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur4_H.m_vImGuiPase.push_back(Blur3_H.m_vImGuiPase[0]);
+	Blur4_H.m_vRenTarView.push_back(Blur3_H.m_vRenTarView[0]);
+
+	Blur4Buffer_H.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur4Buffer_H.bd, NULL, &Blur4Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	Blur4CB_H.MipLevel = 1;
+	Blur4CB_H.Viewport.x = width;
+
+	//Blur 4 V
+
+	Blur4_V.initDX(PassD, -1);
+
+	Blur4_V.m_VertShader = Blur3_V.m_VertShader;
+	Blur4_V.m_PixShader = Blur3_V.m_PixShader;
+
+	Blur4_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur4_V.m_vImGuiPase.push_back(Blur3_V.m_vImGuiPase[0]);
+	Blur4_V.m_vRenTarView.push_back(Blur3_V.m_vRenTarView[0]);
+
+	Blur4Buffer_V.init(BluHDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur4Buffer_V.bd, NULL, &Blur4Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	Blur4CB_V.MipLevel = 2;
+	Blur4CB_V.Viewport.x = height;
+
+	//Fill Bright 4
+
+	FillBright_4.initDX(PassD, -1);
+
+	FillBright_4.m_VertShader = FillBright_3.m_VertShader;
+	FillBright_4.m_PixShader = FillBright_3.m_PixShader;
+
+	FillBright_4.m_vImGuiPase.push_back(FillBright_3.m_vImGuiPase[0]);
+	FillBright_4.m_vRenTarView.push_back(FillBright_3.m_vRenTarView[0]);
+
+	FillBright_4.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_4.m_vShadResView.push_back(Blur4_H.m_vImGuiPase[0]);
+	FillBright_4.m_vShadResView.push_back(Blur4_V.m_vImGuiPase[0]);
+
+	FillBrightBuffer_4.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_4.bd, NULL, &FillBrightBuffer_4.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	FillBrightCB_4.MipLevel.x = 0;
+}
+
+void InitDepthPase()
+{
+	HRESULT hr = S_OK;
+	//Initialize  Rasterizer state
+	D3D11_RASTERIZER_DESC	RaStaDesc;
+	ZeroMemory(&RaStaDesc, sizeof(RaStaDesc));
+	RaStaDesc.FillMode = D3D11_FILL_SOLID;
+	RaStaDesc.CullMode = D3D11_CULL_FRONT;
+	RaStaDesc.FrontCounterClockwise = true;
+
+	hr = DeviceChido->g_pd3dDevice->CreateRasterizerState(&RaStaDesc, &g_GBufferRaSta);
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	RaStaDesc.CullMode = D3D11_CULL_NONE;
+
+	hr = DeviceChido->g_pd3dDevice->CreateRasterizerState(&RaStaDesc, &g_SADRaSta);
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	//Initialize Depth stencil state
+
+	D3D11_DEPTH_STENCIL_DESC DepStenDesc;
+	ZeroMemory(&DepStenDesc, sizeof(DepStenDesc));
+	DepStenDesc.StencilEnable = true;
+	DepStenDesc.DepthEnable = true;
+
+	DepStenDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DepStenDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	DepStenDesc.StencilReadMask = 0xFF;
+	DepStenDesc.StencilWriteMask = 0xFF;
+	DepStenDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	DepStenDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	DepStenDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	DepStenDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	hr = DeviceChido->g_pd3dDevice->CreateDepthStencilState(&DepStenDesc, &g_GBufferDepStenSta);
+
+	if (FAILED(hr))
+	{
+		return ;
+	}
+
+	DepStenDesc.StencilEnable = false;
+	DepStenDesc.DepthEnable = false;
+
+	hr = DeviceChido->g_pd3dDevice->CreateDepthStencilState(&DepStenDesc, &g_SADDepStenSta);
+
+	if (FAILED(hr))
+	{
+		return ;
+	}
+}
+
+void GBufferCreate(PASSE_DIRECTX_STRUCT &PassD, C_Texture2D_DESC &InacTx)
+{
+	//gbuffer
+
+	RefScene = GraphicApi.ChargeMesh("Modelo/Rana/Battletoad_posed.obj", &ScMana, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "Modelo/Rana/battletoad_d.dds", "Modelo/Rana/battletoad_r.dds", "Modelo/Rana/battletoad_n.dds");
+
+	PassD.DevConTextStruct = DeviceContextChido;
+	PassD.RenTarViewCount = 5;
+	PassD.DevStruc = DeviceChido;
+	PassD.TexStruct = InacTx;
+	ZeroMemory(&PassD.RDStateStruct, sizeof(PassD.RDStateStruct));
+	PassD.RDStateStruct.FillMode = D3D11_FILL_SOLID;
+	PassD.RDStateStruct.CullMode = D3D11_CULL_FRONT;
+	PassD.RDStateStruct.FrontCounterClockwise = true;
+
+	CompileShaders(L"GBuffer.fx", "vs_main", "ps_main", GBuffer.m_VertShader, GBuffer.m_PixShader, GBuffer.m_IntLay);
+
+	GBuffer.initDX(PassD, 1);
+}
+
+void AmbientCreate(PASSE_DIRECTX_STRUCT &PassD, C_Texture2D_DESC &InacTx)
+{
+	HRESULT hr = S_OK;
+	//ambient oclussion
+	PassD.RenTarViewCount = 1;
+	PassD.RDStateStruct.CullMode = D3D11_CULL_NONE;
+
+	CompileShaders(L"AmbientOc.fx", "vs_main", "ps_main", AmbientOclusionPase.m_VertShader, AmbientOclusionPase.m_PixShader, AmbientOclusionPase.m_IntLay);
+
+	GraphicApi.ChargeMesh("Modelo/ScreenAlignedQuad.3ds", &ScManaAlinequad, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
+
+	AmbientOclusionPase.initDX(PassD, 1);
+
+	C_Buffer_DESC BufferAmbient;
+	BufferAmbient.Usage = C_USAGE_DEFAULT;
+	BufferAmbient.ByteWidth = sizeof(CBSuperSamplerAmbientOclusion);
+	BufferAmbient.BindFlags = 4;
+	BufferAmbient.CPUAccessFlags = 0;
+
+	AmbientOclusionBuffer.init(BufferAmbient);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&AmbientOclusionBuffer.bd, NULL, &AmbientOclusionBuffer.P_Buffer);
+	if (FAILED(hr))
+		return;
+
+
+	AmbientOclusionCB.KIntensity = 8.2f;
+	AmbientOclusionCB.KScale = 0.5f;
+	AmbientOclusionCB.KBias = 0.1f;
+	AmbientOclusionCB.KSample = 2.4f;
+
+	AmbientOclusionPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[0]);
+	AmbientOclusionPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[2]);
+}
+
+void SkyCreate(PASSE_DIRECTX_STRUCT &PassD, C_Texture2D_DESC &InacTx, D3DX11_IMAGE_LOAD_INFO &ImageLoadInfo, D3D11_SHADER_RESOURCE_VIEW_DESC &ShReViDesc)
+{
+	//sky box
+	HRESULT hr = S_OK;
+	CompileShaders(L"Skybox.fx", "vs_main", "ps_main", SkyBoxPase.m_VertShader, SkyBoxPase.m_PixShader, SkyBoxPase.m_IntLay);
+
+	SkyBoxPase.initDX(PassD, 1);
+
+	GraphicApi.ChargeMesh("Modelo/Sphere.3ds", &ScManaSkyBox, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
+
+	
+	ImageLoadInfo.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	ID3D11Texture2D* Texture2D;
+
+	hr = D3DX11CreateTextureFromFile(DeviceChido->g_pd3dDevice, L"Modelo/grace_cube.dds", &ImageLoadInfo, 0, (ID3D11Resource**)&Texture2D, 0);
+	if (FAILED(hr))
+		return;
+
+	D3D11_TEXTURE2D_DESC TexDesc;
+	Texture2D->GetDesc(&TexDesc);
+
+
+	ZeroMemory(&ShReViDesc, sizeof(ShReViDesc));
+
+	ShReViDesc.Format = TexDesc.Format;
+	ShReViDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+	ShReViDesc.TextureCube.MipLevels = TexDesc.MipLevels;
+	ShReViDesc.TextureCube.MostDetailedMip = 0;
+
+	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(Texture2D, &ShReViDesc, &ScManaSkyBox.GetMesh(0)->m_Materials->m_TexDif);
+	if (FAILED(hr))
+		return;
+}
+
+void LightCreate(PASSE_DIRECTX_STRUCT& PassD, C_Texture2D_DESC& InacTx, D3DX11_IMAGE_LOAD_INFO& ImageLoadInfo, D3D11_SHADER_RESOURCE_VIEW_DESC& ShReViDesc)
+{
+	HRESULT hr = S_OK;
+	//Light
+	PassD.RenTarViewCount = 1;
+	LightPase.initDX(PassD, 1);
+
+	ID3D11Texture2D* IrrTex2D;
+
+	hr = D3DX11CreateTextureFromFile(DeviceChido->g_pd3dDevice, L"Modelo/grace_diffuse_cube.dds", &ImageLoadInfo, 0, (ID3D11Resource**)&IrrTex2D, 0);
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(IrrTex2D, &ShReViDesc, &LightIrra);
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[4]);
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[1]);
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[2]);
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[3]);
+	LightPase.m_vShadResView.push_back(SkyBoxPase.m_vImGuiPase[0]);
+	LightPase.m_vShadResView.push_back(LightIrra);
+
+	CompileShaders(L"Light.fx", "vs_main", "ps_main", LightPase.m_VertShader, LightPase.m_PixShader, LightPase.m_IntLay);
+
+	LightCB.KDiffuse = 1.f;
+	LightCB.KAmbient = .028f;
+	LightCB.KSpecular = 2.f;
+	LightCB.SpecularPower = 16.f;
+	LightCB.lightDir = { -1, -1, -1, 0 };
+	LightCB.lightColor = { .97f, .94f, 1.f, 1.f };
+
+	C_Buffer_DESC LiBuff;
+	LiBuff.Usage = C_USAGE_DEFAULT;
+	LiBuff.ByteWidth = sizeof(CBLight);
+	LiBuff.BindFlags = 4;
+	LiBuff.CPUAccessFlags = 0;
+
+	LightBuffer.init(LiBuff);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&LightBuffer.bd, NULL, &LightBuffer.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+}
+
+void LumiCreate(PASSE_DIRECTX_STRUCT& PassD, C_Texture2D_DESC& InacTx)
+{
+	//Luminicencia
+	PassD.RenTarViewCount = 1;
+	PassD.TexStruct.MipLevels = 5;
+	PassD.TexStruct.MiscFlags = 0x1L;
+	LumiPase.initDX(PassD, -1);
+
+	LumiPase.m_vShadResView.push_back(LumiPase.m_vImGuiPase[0]);
+
+	CompileShaders(L"Luminicencia.fx", "vs_main", "ps_main", LumiPase.m_VertShader, LumiPase.m_PixShader, LumiPase.m_IntLay);
+}
+
+void BrightCreate(PASSE_DIRECTX_STRUCT& PassD, C_Buffer_DESC& FillBriDesc, C_Buffer_DESC& BluHDesc)
+{
+	HRESULT hr = S_OK;
+	//Bright
+	BrightPase.initDX(PassD, -1);
+
+	BrightPase.m_vShadResView.push_back(LumiPase.m_vImGuiPase[0]);
+	BrightPase.m_vShadResView.push_back(LightPase.m_vImGuiPase[0]);
+	CompileShaders(L"Bright.fx", "vs_main", "ps_main", BrightPase.m_VertShader, BrightPase.m_PixShader, BrightPase.m_IntLay);
+
+	C_Buffer_DESC BriDesc;
+	BriDesc.Usage = C_USAGE_DEFAULT;
+	BriDesc.ByteWidth = sizeof(CBBright);
+	BriDesc.BindFlags = 4;
+	BriDesc.CPUAccessFlags = 0;
+
+	BrightBuffer.init(BriDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&BrightBuffer.bd, NULL, &BrightBuffer.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	BrightCB.MipLevel = 0;
+	BrightCB.Threshold.x = 0.16f;
+
+	CreateBlur1(FillBriDesc, BluHDesc, PassD);
+	CreateBlur2(FillBriDesc, BluHDesc, PassD);
+	CreateBlur3(FillBriDesc, BluHDesc, PassD);
+	CreateBlur4(FillBriDesc, BluHDesc, PassD);
+}
+
+void TownCreate(PASSE_DIRECTX_STRUCT& PassD)
+{
+	HRESULT hr = S_OK;
+	//Town map
+
+	PassD.RenTarViewCount = 1;
+	PassD.TexStruct.MiscFlags = 0;
+	PassD.TexStruct.MipLevels = 1;
+	TownMapPass.initDX(PassD, 1);
+	CompileShaders(L"TownMap.fx", "vs_main", "ps_main", TownMapPass.m_VertShader, TownMapPass.m_PixShader, TownMapPass.m_IntLay);
+	TownMapPass.m_vShadResView.push_back(LightPase.m_vImGuiPase[0]);
+	TownMapPass.m_vShadResView.push_back(AmbientOclusionPase.m_vImGuiPase[0]);
+	TownMapPass.m_vShadResView.push_back(FillBright_4.m_vImGuiPase[0]);
+	C_Buffer_DESC TownDesc;
+	TownDesc.Usage = C_USAGE_DEFAULT;
+	TownDesc.ByteWidth = sizeof(CBTownMap);
+	TownDesc.BindFlags = 4;
+	TownDesc.CPUAccessFlags = 0;
+	TownMapBuffer.init(TownDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&TownMapBuffer.bd, NULL, &TownMapBuffer.P_Buffer);
+	if (FAILED(hr))
+	{
+		return;
+	}
+	TownMapCB.ColorSpace = 2;
+	TownMapCB.KBloom = .3f;
+	TownMapCB.KExposure = 3.2f;
+}
 //! A InitDeviceOGL function.
 	/*!
 	  Function of opengl for init window, create shader, load model, and render.
@@ -1925,7 +2509,7 @@ HRESULT InitDevice()
 	InacTx.SampleDesc.Count = 1;
 	InacTx.Usage = C_USAGE_DEFAULT;
 	InacTx.BindFlags = 8 | 32;
-	InacTx.CPUAccessFlags = 65536;
+	InacTx.CPUAccessFlags = 0; //65536
 	InacTx.MiscFlags = 0;
 
 	TextureCAMInac.init(InacTx);
@@ -1968,524 +2552,22 @@ HRESULT InitDevice()
 	ImGui_ImplDX11_Init(DeviceChido->g_pd3dDevice, DeviceContextChido->g_pImmediateContext);
 	ImGui::StyleColorsDark();
 
-	//Initialize  Rasterizer state
-	D3D11_RASTERIZER_DESC	RaStaDesc;
-	ZeroMemory(&RaStaDesc, sizeof(RaStaDesc));
-	RaStaDesc.FillMode = D3D11_FILL_SOLID;
-	RaStaDesc.CullMode = D3D11_CULL_FRONT;
-	RaStaDesc.FrontCounterClockwise = true;
-
-	hr = DeviceChido->g_pd3dDevice->CreateRasterizerState(&RaStaDesc, &g_GBufferRaSta);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	RaStaDesc.CullMode = D3D11_CULL_NONE;
-
-	hr = DeviceChido->g_pd3dDevice->CreateRasterizerState(&RaStaDesc, &g_SADRaSta);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	//Initialize Depth stencil state
-
-	D3D11_DEPTH_STENCIL_DESC DepStenDesc;
-	ZeroMemory(&DepStenDesc, sizeof(DepStenDesc));
-	DepStenDesc.StencilEnable = true;
-	DepStenDesc.DepthEnable = true;
-	
-	DepStenDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	DepStenDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	DepStenDesc.StencilReadMask = 0xFF;
-	DepStenDesc.StencilWriteMask = 0xFF;
-	DepStenDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	DepStenDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	DepStenDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	DepStenDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	DepStenDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	DepStenDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	DepStenDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	DepStenDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-	hr = DeviceChido->g_pd3dDevice->CreateDepthStencilState(&DepStenDesc, &g_GBufferDepStenSta);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	DepStenDesc.StencilEnable = false;
-	DepStenDesc.DepthEnable = false;
-
-	hr = DeviceChido->g_pd3dDevice->CreateDepthStencilState(&DepStenDesc, &g_SADDepStenSta);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
+	InitDepthPase();
 
 	///////////PASES
-	//gbuffer
-
-	RefScene = GraphicApi.ChargeMesh("Modelo/Rana/Battletoad_posed.obj", &ScMana, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "Modelo/Rana/battletoad_d.dds", "Modelo/Rana/battletoad_m.dds", "Modelo/Rana/battletoad_n.dds");
-
-	PassD.DevConTextStruct = DeviceContextChido;
-	PassD.RenTarViewCount = 4;
-	PassD.DevStruc = DeviceChido;
-	PassD.TexStruct = InacTx;
-	ZeroMemory(&PassD.RDStateStruct, sizeof(PassD.RDStateStruct));
-	PassD.RDStateStruct.FillMode = D3D11_FILL_SOLID;
-	PassD.RDStateStruct.CullMode = D3D11_CULL_FRONT;
-	PassD.RDStateStruct.FrontCounterClockwise = true;
-
-	CompileShaders(L"GBuffer.fx", "vs_main", "ps_main", GBuffer.m_VertShader, GBuffer.m_PixShader, GBuffer.m_IntLay);
-
-	GBuffer.initDX(PassD, 1);
-
-	//ambient oclussion
-	PassD.RenTarViewCount = 1;
-	PassD.RDStateStruct.CullMode = D3D11_CULL_NONE;
-
-	CompileShaders(L"AmbientOc.fx", "vs_main", "ps_main", AmbientOclusionPase.m_VertShader, AmbientOclusionPase.m_PixShader, AmbientOclusionPase.m_IntLay);
-
-	GraphicApi.ChargeMesh("Modelo/ScreenAlignedQuad.3ds", &ScManaAlinequad, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
-
-	AmbientOclusionPase.initDX(PassD, 1);
-
-	C_Buffer_DESC BufferAmbient;
-	BufferAmbient.Usage = C_USAGE_DEFAULT;
-	BufferAmbient.ByteWidth = sizeof(CBSuperSamplerAmbientOclusion);
-	BufferAmbient.BindFlags = 4;
-	BufferAmbient.CPUAccessFlags = 0;
-
-	AmbientOclusionBuffer.init(BufferAmbient);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&AmbientOclusionBuffer.bd, NULL, &AmbientOclusionBuffer.P_Buffer);
-	if (FAILED(hr))
-		return hr;
-
 	
-	AmbientOclusionCB.KIntensity = 8.2f;
-	AmbientOclusionCB.KScale = 0.5f;
-	AmbientOclusionCB.KBias = 0.1f;
-	AmbientOclusionCB.KSample = 2.4f;
-
-	//DeviceContextChido->g_pImmediateContext->UpdateSubresource(AmbientOclusionBuffer.P_Buffer, 0, NULL, &CBAmbient, 0, 0);
-	AmbientOclusionPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[0]);
-	AmbientOclusionPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[2]);
-	//AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(2));
-	//AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(0));
-
-	//sky box
-	CompileShaders(L"Skybox.fx", "vs_main", "ps_main", SkyBoxPase.m_VertShader, SkyBoxPase.m_PixShader, SkyBoxPase.m_IntLay);
-
-	SkyBoxPase.initDX(PassD, 1);
-
-	GraphicApi.ChargeMesh("Modelo/Sphere.3ds", &ScManaSkyBox, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
 
 	D3DX11_IMAGE_LOAD_INFO ImageLoadInfo;
-
-	ImageLoadInfo.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-
-	ID3D11Texture2D* Texture2D;
-
-	hr = D3DX11CreateTextureFromFile(DeviceChido->g_pd3dDevice, L"Modelo/grace_cube.dds", &ImageLoadInfo, 0, (ID3D11Resource**)&Texture2D, 0);
-	if (FAILED(hr))
-		return hr;
-
-	D3D11_TEXTURE2D_DESC TexDesc;
-	Texture2D->GetDesc(&TexDesc);
-
 	D3D11_SHADER_RESOURCE_VIEW_DESC ShReViDesc;
-
-	ZeroMemory(&ShReViDesc, sizeof(ShReViDesc));
-
-	ShReViDesc.Format = TexDesc.Format;
-	ShReViDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-	ShReViDesc.TextureCube.MipLevels = TexDesc.MipLevels;
-	ShReViDesc.TextureCube.MostDetailedMip = 0;
-
-	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(Texture2D, &ShReViDesc, &ScManaSkyBox.GetMesh(0)->m_Materials->m_TexDif);
-	if (FAILED(hr))
-		return hr;
-
-	//Light
-	PassD.RenTarViewCount = 1;
-	LightPase.initDX(PassD, 1);
-
-	ID3D11Texture2D* IrrTex2D;
-
-	hr = D3DX11CreateTextureFromFile(DeviceChido->g_pd3dDevice, L"Models/grace_diffuse_cube.dds", &ImageLoadInfo, 0, (ID3D11Resource**)&IrrTex2D, 0);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(IrrTex2D, &ShReViDesc, &LightIrra);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[4]);
-	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[1]);
-	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[2]);
-	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[3]);
-	LightPase.m_vShadResView.push_back(SkyBoxPase.m_vImGuiPase[0]);
-	LightPase.m_vShadResView.push_back(LightIrra);
-
-	CompileShaders(L"Light.fx", "vs_main", "ps_main", LightPase.m_VertShader, LightPase.m_PixShader, LightPase.m_IntLay);
-
-	LightCB.KDiffuse = 1.f;
-	LightCB.KAmbient = .028f;
-	LightCB.KSpecular = 2.f;
-	LightCB.SpecularPower = 16.f;
-	LightCB.lightDir = { -1, -1, -1, 0 };
-	LightCB.lightColor = { .97f, .94f, 1.f, 1.f };
-
-	C_Buffer_DESC LiBuff;
-	LiBuff.Usage = C_USAGE_DEFAULT;
-	LiBuff.ByteWidth = sizeof(CBLight);
-	LiBuff.BindFlags = 4;
-	LiBuff.CPUAccessFlags = 0;
-
-	LightBuffer.init(LiBuff);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&LightBuffer.bd, NULL, &LightBuffer.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	//Luminicencia
-	PassD.RenTarViewCount = 1;
-	PassD.TexStruct.MipLevels = 5;
-	PassD.TexStruct.MiscFlags = 0x1L;
-	LumiPase.initDX(PassD, -1);
-
-	LumiPase.m_vShadResView.push_back(LumiPase.m_vImGuiPase[0]);
-
-	CompileShaders(L"Luminicencia.fx", "vs_main", "ps_main", LumiPase.m_VertShader, LumiPase.m_PixShader, LumiPase.m_IntLay);
-
-	//Bright
-	BrightPase.initDX(PassD, -1);
-
-	BrightPase.m_vShadResView.push_back(LumiPase.m_vImGuiPase[0]);
-	BrightPase.m_vShadResView.push_back(LightPase.m_vImGuiPase[0]);
-	CompileShaders(L"Bright.fx", "vs_main", "ps_main", BrightPase.m_VertShader, BrightPase.m_PixShader, BrightPase.m_IntLay);
-
-	C_Buffer_DESC BriDesc;
-	BriDesc.Usage = C_USAGE_DEFAULT;
-	BriDesc.ByteWidth = sizeof(CBBright);
-	BriDesc.BindFlags = 4;
-	BriDesc.CPUAccessFlags = 0;
-
-	BrightBuffer.init(BriDesc);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&BrightBuffer.bd, NULL, &BrightBuffer.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	BrightCB.MipLevel = 0;
-	BrightCB.Threshold.x = 0.16f;
-
-	//Blur 1 H
-	Blur1_H.initDX(PassD, -1);
-	Blur1_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-
-	CompileShaders(L"BlurH.fx", "vs_main", "ps_main", Blur1_H.m_VertShader, Blur1_H.m_PixShader, Blur1_H.m_IntLay);
-
 	C_Buffer_DESC BluHDesc;
-	BluHDesc.Usage = C_USAGE_DEFAULT;
-	BluHDesc.ByteWidth = sizeof(CBBlur);
-	BluHDesc.BindFlags = 4;
-	BluHDesc.CPUAccessFlags = 0;
-
-	Blur1Buffer_H.init(BluHDesc);
-
-	
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur1Buffer_H.bd, NULL, &Blur1Buffer_H.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur1CB_H.MipLevel = 4;
-	Blur1CB_H.Viewport.x = width;
-
-	//Blur 1 V
-	Blur1_V.initDX(PassD, -1);
-	Blur1_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-
-	CompileShaders(L"BlurV.fx", "vs_main", "ps_main", Blur1_V.m_VertShader, Blur1_V.m_PixShader, Blur1_V.m_IntLay);
-
-	Blur1Buffer_V.init(BluHDesc);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur1Buffer_V.bd, NULL, &Blur1Buffer_V.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur1CB_V.MipLevel = 4;
-	Blur1CB_V.Viewport.x = height;
-
-	//Fill Bright1  
-	FillBright_1.initDX(PassD, -1);
-
-	FillBright_1.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	FillBright_1.m_vShadResView.push_back(Blur1_H.m_vImGuiPase[0]);
-	FillBright_1.m_vShadResView.push_back(Blur1_V.m_vImGuiPase[0]);
-
-	CompileShaders(L"FillBright.fx", "vs_main", "ps_main", FillBright_1.m_VertShader, FillBright_1.m_PixShader, FillBright_1.m_IntLay);
-
 	C_Buffer_DESC FillBriDesc;
-	FillBriDesc.Usage = C_USAGE_DEFAULT;
-	FillBriDesc.ByteWidth = sizeof(CBFillBright);
-	FillBriDesc.BindFlags = 4;
-	FillBriDesc.CPUAccessFlags = 0;
-
-	FillBrightBuffer_1.init(FillBriDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_1.bd, NULL, &FillBrightBuffer_1.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	FillBrightCB_1.MipLevel.x = 3;
-
-	//Blur 2 H
-	Blur2_H.initDX(PassD, -1);
-
-	Blur2_H.m_VertShader = Blur1_H.m_VertShader;
-	Blur2_H.m_PixShader = Blur1_H.m_PixShader;
-
-	Blur2_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-
-	Blur2Buffer_H.init(BluHDesc);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur2Buffer_H.bd, NULL, &Blur2Buffer_H.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur2CB_H.MipLevel = 3;
-	Blur2CB_H.Viewport.x = width;
-
-	//Blur 2 V
-	PassD.RenTarViewCount = 0;
-	Blur2_V.initDX(PassD, -1);
-
-	Blur2_V.m_VertShader = Blur1_V.m_VertShader;
-	Blur2_V.m_PixShader = Blur1_V.m_PixShader;
-
-	Blur2_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	Blur2_V.m_vImGuiPase.push_back(Blur1_V.m_vImGuiPase[0]);
-	Blur2_V.m_vRenTarView.push_back(Blur1_V.m_vRenTarView[0]);
-
-	Blur2Buffer_V.init(BluHDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur2Buffer_V.bd, NULL, &Blur2Buffer_V.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur2CB_V.MipLevel = 3;
-	Blur2CB_V.Viewport.x = height;
-
-	//Fill Bright 2  
-
-	FillBright_2.initDX(PassD, -1);
-
-	FillBright_2.m_VertShader = FillBright_1.m_VertShader;
-	FillBright_2.m_PixShader = FillBright_1.m_PixShader;
-
-	FillBright_2.m_vImGuiPase.push_back(FillBright_1.m_vImGuiPase[0]);
-	FillBright_2.m_vRenTarView.push_back(FillBright_1.m_vRenTarView[0]);
-
-	FillBright_2.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	FillBright_2.m_vShadResView.push_back(Blur2_H.m_vImGuiPase[0]);
-	FillBright_2.m_vShadResView.push_back(Blur2_V.m_vImGuiPase[0]);
-
-	FillBrightBuffer_2.init(FillBriDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_2.bd, NULL, &FillBrightBuffer_2.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	FillBrightCB_2.MipLevel.x = 2;
-
-	//Blur 3 H
-	Blur3_H.initDX(PassD, -1);
-
-	Blur3_H.m_VertShader = Blur2_H.m_VertShader;
-	Blur3_H.m_PixShader = Blur2_H.m_PixShader;
-
-	Blur3_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	Blur3_H.m_vImGuiPase.push_back(Blur2_H.m_vImGuiPase[0]);
-	Blur3_H.m_vRenTarView.push_back(Blur2_H.m_vRenTarView[0]);
-
-	Blur3Buffer_H.init(BluHDesc);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur3Buffer_H.bd, NULL, &Blur3Buffer_H.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur3CB_H.MipLevel = 2;
-	Blur3CB_H.Viewport.x = width;
-
-	//Blur 3 V
-	
-	Blur3_V.initDX(PassD, -1);
-
-	Blur3_V.m_VertShader = Blur2_V.m_VertShader;
-	Blur3_V.m_PixShader = Blur2_V.m_PixShader;
-
-	Blur3_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	Blur3_V.m_vImGuiPase.push_back(Blur2_V.m_vImGuiPase[0]);
-	Blur3_V.m_vRenTarView.push_back(Blur2_V.m_vRenTarView[0]);
-
-	Blur3Buffer_V.init(BluHDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur3Buffer_V.bd, NULL, &Blur3Buffer_V.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur3CB_V.MipLevel = 2;
-	Blur3CB_V.Viewport.x = height;
-
-	//Fill Bright 3
-
-	FillBright_3.initDX(PassD, 5);
-
-	FillBright_3.m_VertShader = FillBright_2.m_VertShader;
-	FillBright_3.m_PixShader = FillBright_2.m_PixShader;
-
-	FillBright_3.m_vImGuiPase.push_back(FillBright_2.m_vImGuiPase[0]);
-	FillBright_3.m_vRenTarView.push_back(FillBright_2.m_vRenTarView[0]);
-
-	FillBright_3.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	FillBright_3.m_vShadResView.push_back(Blur3_H.m_vImGuiPase[0]);
-	FillBright_3.m_vShadResView.push_back(Blur3_V.m_vImGuiPase[0]);
-
-	FillBrightBuffer_3.init(FillBriDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_3.bd, NULL, &FillBrightBuffer_3.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	FillBrightCB_3.MipLevel.x = 1;
-
-	//Blur 4 H
-	Blur4_H.initDX(PassD, 5);
-
-	Blur4_H.m_VertShader = Blur3_H.m_VertShader;
-	Blur4_H.m_PixShader = Blur3_H.m_PixShader;
-
-	Blur4_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	Blur4_H.m_vImGuiPase.push_back(Blur3_H.m_vImGuiPase[0]);
-	Blur4_H.m_vRenTarView.push_back(Blur3_H.m_vRenTarView[0]);
-
-	Blur4Buffer_H.init(BluHDesc);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur4Buffer_H.bd, NULL, &Blur4Buffer_H.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur4CB_H.MipLevel = 1;
-	Blur4CB_H.Viewport.x = width;
-
-	//Blur 4 V
-
-	Blur4_V.initDX(PassD, -1);
-
-	Blur4_V.m_VertShader = Blur3_V.m_VertShader;
-	Blur4_V.m_PixShader = Blur3_V.m_PixShader;
-
-	Blur4_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	Blur4_V.m_vImGuiPase.push_back(Blur3_V.m_vImGuiPase[0]);
-	Blur4_V.m_vRenTarView.push_back(Blur3_V.m_vRenTarView[0]);
-
-	Blur4Buffer_V.init(BluHDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur4Buffer_V.bd, NULL, &Blur4Buffer_V.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	Blur4CB_V.MipLevel = 2;
-	Blur4CB_V.Viewport.x = height;
-
-	//Fill Bright 4
-
-	FillBright_4.initDX(PassD, -1);
-
-	FillBright_4.m_VertShader = FillBright_3.m_VertShader;
-	FillBright_4.m_PixShader = FillBright_3.m_PixShader;
-
-	FillBright_4.m_vImGuiPase.push_back(FillBright_3.m_vImGuiPase[0]);
-	FillBright_4.m_vRenTarView.push_back(FillBright_3.m_vRenTarView[0]);
-
-	FillBright_4.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
-	FillBright_4.m_vShadResView.push_back(Blur4_H.m_vImGuiPase[0]);
-	FillBright_4.m_vShadResView.push_back(Blur4_V.m_vImGuiPase[0]);
-
-	FillBrightBuffer_4.init(FillBriDesc);
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_4.bd, NULL, &FillBrightBuffer_4.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	FillBrightCB_4.MipLevel.x = 0;
-
-	//Town map
-
-	PassD.RenTarViewCount = 1;
-	PassD.TexStruct.MiscFlags = 0;
-	PassD.TexStruct.MipLevels = 1;
-
-	TownMapPass.initDX(PassD, 1);
-
-	CompileShaders(L"ToneMap.fx", "vs_main", "ps_main", TownMapPass.m_VertShader, TownMapPass.m_PixShader, TownMapPass.m_IntLay);
-
-	TownMapPass.m_vShadResView.push_back(LightPase.m_vImGuiPase[0]);
-	TownMapPass.m_vShadResView.push_back(AmbientOclusionPase.m_vImGuiPase[0]);
-	TownMapPass.m_vShadResView.push_back(FillBright_4.m_vImGuiPase[0]);
-
-	C_Buffer_DESC TownDesc;
-	TownDesc.Usage = C_USAGE_DEFAULT;
-	TownDesc.ByteWidth = sizeof(CBTownMap);
-	TownDesc.BindFlags = 4;
-	TownDesc.CPUAccessFlags = 0;
-
-	TownMapBuffer.init(TownDesc);
-
-	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&TownMapBuffer.bd, NULL, &TownMapBuffer.P_Buffer);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	TownMapCB.ColorSpace = 2;
-	TownMapCB.KBloom = .3f;
-	TownMapCB.KExposure = 3.2f;
+	GBufferCreate(PassD, InacTx);
+	AmbientCreate(PassD, InacTx);
+	SkyCreate(PassD, InacTx, ImageLoadInfo, ShReViDesc);
+	LightCreate(PassD, InacTx, ImageLoadInfo, ShReViDesc);
+	LumiCreate(PassD, InacTx);
+	BrightCreate(PassD, FillBriDesc, BluHDesc);
+	TownCreate(PassD);
 
 #endif
 	
@@ -3130,7 +3212,7 @@ void Render()
 	
 	float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f };
 	GBuffer.SetPass(&G_PDepthStencilView);
-	GBuffer.Clear(ClearColor, &G_PDepthStencilView);
+	//GBuffer.Clear(ClearColor, &G_PDepthStencilView);
 	
 	std::vector<glm::mat4> Transform;
 
@@ -3151,18 +3233,18 @@ void Render()
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(BufferOfBones.P_Buffer, 0, NULL, &CbBones, 0, 0);*/
 
 
-	CBLight LDR;
-	LDR.lightDir = lightDir;
-	//LDR.lightPointAtt = lightAtt;
-	//LDR.lightPointPos = lightPos;
-	DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightDir.P_Buffer, 0, NULL, &LDR, 0, 0);
+	//CBLight LDR;
+	//LDR.lightDir = lightDir;
+	////LDR.lightPointAtt = lightAtt;
+	////LDR.lightPointPos = lightPos;
+	//DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightDir.P_Buffer, 0, NULL, &LDR, 0, 0);
 
 	
 
-	DeviceContextChido->g_pImmediateContext->ClearRenderTargetView(G_PRenderTargetView.g_pRenderTargetView, ClearColor);
+	//DeviceContextChido->g_pImmediateContext->ClearRenderTargetView(G_PRenderTargetView.g_pRenderTargetView, ClearColor);
 
-	DeviceContextChido->g_pImmediateContext->ClearDepthStencilView(G_PDepthStencilView.g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
+	//DeviceContextChido->g_pImmediateContext->ClearDepthStencilView(G_PDepthStencilView.g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	GBuffer.Clear(ClearColor, &G_PDepthStencilView);
 	DeviceContextChido->g_pImmediateContext->PSSetSamplers(0, 1, &SampleState.g_pSamplerLinear);
 
 	CBChangesEveryFrame cbMesh;

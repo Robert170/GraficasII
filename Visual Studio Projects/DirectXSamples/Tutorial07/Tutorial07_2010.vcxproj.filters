@@ -137,5 +137,8 @@
     <FxCompile Include="FillBright.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="TownMap.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
