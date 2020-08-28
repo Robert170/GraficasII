@@ -169,14 +169,102 @@ CSceneManager ScMana;
 CSceneManager ScManaAlinequad;
 CSceneManager ScManaSkyBox;
 
+//Gbuffer
 CPase GBuffer;
 
+//Ambient oclusion
 CPase AmbientOclusionPase;
 CBuffer	AmbientOclusionBuffer;
+CBSuperSamplerAmbientOclusion AmbientOclusionCB;
 
+//SkyBox
 CPase SkyBoxPase;
 
+//Light
 CPase LightPase;
+CBuffer LightBuffer;
+CBLight	LightCB;
+ID3D11ShaderResourceView* LightIrra;
+
+//Luminancia
+CPase LumiPase;
+
+//Bright
+CPase BrightPase;
+CBuffer BrightBuffer;
+CBBright BrightCB;
+
+//Blur1_H
+CPase Blur1_H;
+CBuffer	Blur1Buffer_H;
+CBBlur	Blur1CB_H;
+
+//Blur2_H
+CPase Blur2_H;
+CBuffer	Blur2Buffer_H;
+CBBlur	Blur2CB_H;
+
+//Blur3_H
+CPase Blur3_H;
+CBuffer	Blur3Buffer_H;
+CBBlur	Blur3CB_H;
+
+//Blur4_H
+CPase Blur4_H;
+CBuffer	Blur4Buffer_H;
+CBBlur	Blur4CB_H;
+
+//Blur1_V
+CPase Blur1_V;
+CBuffer	Blur1Buffer_V;
+CBBlur	Blur1CB_V;
+
+//Blur2_V
+CPase Blur2_V;
+CBuffer	Blur2Buffer_V;
+CBBlur	Blur2CB_V;
+
+//Blur3_V
+CPase Blur3_V;
+CBuffer	Blur3Buffer_V;
+CBBlur	Blur3CB_V;
+
+//Blur4_V
+CPase Blur4_V;
+CBuffer	Blur4Buffer_V;
+CBBlur	Blur4CB_V;
+
+//Bright fill 1
+CPase FillBright_1;
+CBuffer FillBrightBuffer_1;
+CBFillBright FillBrightCB_1;
+
+//Bright fill 2
+CPase FillBright_2;
+CBuffer FillBrightBuffer_2;
+CBFillBright	FillBrightCB_2;
+
+//Bright fill 3
+CPase FillBright_3;
+CBuffer FillBrightBuffer_3;
+CBFillBright	FillBrightCB_3;
+
+//Bright fill 4
+CPase FillBright_4;
+CBuffer FillBrightBuffer_4;
+CBFillBright	FillBrightCB_4;
+
+//town map
+CPase TownMapPass;
+CBuffer	TownMapBuffer;
+CBTownMap TownMapCB;
+
+ID3D11DepthStencilState* g_GBufferDepStenSta;
+ID3D11DepthStencilState* g_SADDepStenSta;
+
+ID3D11RasterizerState* g_GBufferRaSta;
+ID3D11RasterizerState* g_SADRaSta;
+
 
 long long GetCurrentTimeMillis()
 {
@@ -547,7 +635,10 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 				{
 					ImGui::Image(AmbientOclusionPase.m_vImGuiPase.at(i), ImVec2{ 150,150 });
 				}
-
+				ImGui::SliderFloat("kIntensity", &AmbientOclusionCB.KIntensity, 0.0f, 50.0f, "%.5f");
+				ImGui::SliderFloat("kScale", &AmbientOclusionCB.KScale, 0.0f, 10.0f, "%.1f");
+				ImGui::SliderFloat("kBias", &AmbientOclusionCB.KBias, 0.0f, 1.0f, "%.10f");
+				ImGui::SliderFloat("kSample", &AmbientOclusionCB.KSample, 0.0f, 32.0f, "%.5f");
 			}
 			if (ImGui::CollapsingHeader("SkyBox"))
 			{
@@ -557,6 +648,79 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 				}
 
 			}
+			if (ImGui::CollapsingHeader("Light"))
+			{
+				for (int i = 0; i < LightPase.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(LightPase.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+				ImGui::SliderFloat("kDiffuse", &LightCB.KDiffuse, 0.0f, 1.0f, "%.10f");
+				ImGui::SliderFloat("kAmbient", &LightCB.KAmbient, 0.0f, 1.0f, "%.10f");
+				ImGui::SliderFloat("kSpecular", &LightCB.KSpecular, 0.0f, 10.0f, "%.5f");
+				ImGui::SliderFloat("SpecularPower", &LightCB.SpecularPower, 0.0f, 32.0f, "%.5f");
+				ImGui::SliderFloat3("LightDir", (float*)&LightCB.lightDir, -1.f, 1.f, "%.10f");
+				ImGui::SliderFloat3("LightColor", (float*)&LightCB.lightColor, 0.f, 1.f, "%.1f");
+			}
+			if (ImGui::CollapsingHeader("Luminance"))
+			{
+				for (int i = 0; i < LumiPase.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(LumiPase.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+			}
+			if (ImGui::CollapsingHeader("Bright"))
+			{
+				for (int i = 0; i < BrightPase.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(BrightPase.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+				ImGui::SliderInt("Mip Level", &BrightCB.MipLevel, 0, 5);
+				ImGui::SliderFloat("Threshold", (float*)&BrightCB.Threshold.x, 0.f, 1.f, "%.10f");
+			}
+			if (ImGui::CollapsingHeader("BlurH"))
+			{
+				for (int i = 0; i < Blur1_H.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(Blur1_H.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+				ImGui::SliderInt("mipLevelH1", &Blur1CB_H.MipLevel, 0, 5);
+				ImGui::SliderInt("mipLevelH2", &Blur2CB_H.MipLevel, 0, 5);
+				ImGui::SliderInt("mipLevelH3", &Blur3CB_H.MipLevel, 0, 5);
+				ImGui::SliderInt("mipLevelH4", &Blur4CB_H.MipLevel, 0, 5);
+			}
+			if (ImGui::CollapsingHeader("BlurV"))
+			{
+				for (int i = 0; i < Blur1_V.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(Blur1_V.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+				ImGui::SliderInt("mipLevelV1", &Blur1CB_V.MipLevel, 0, 5);
+				ImGui::SliderInt("mipLevelV2", &Blur2CB_V.MipLevel, 0, 5);
+				ImGui::SliderInt("mipLevelV3", &Blur3CB_V.MipLevel, 0, 5);
+				ImGui::SliderInt("mipLevelV4", &Blur4CB_V.MipLevel, 0, 5);
+			}
+			if (ImGui::CollapsingHeader("AddBright1"))
+			{
+				for (int i = 0; i < FillBright_1.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(FillBright_1.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+				ImGui::SliderInt("mipLevelAB1", &FillBrightCB_1.MipLevel.x, 0, 5);
+				ImGui::SliderInt("mipLevelAB2", &FillBrightCB_2.MipLevel.x, 0, 5);
+				ImGui::SliderInt("mipLevelAB3", &FillBrightCB_3.MipLevel.x, 0, 5);
+				ImGui::SliderInt("mipLevelAB4", &FillBrightCB_4.MipLevel.x, 0, 5);
+			}
+			if (ImGui::CollapsingHeader("TownMap"))
+			{
+				for (int i = 0; i < TownMapPass.m_vImGuiPase.size(); i++)
+				{
+					ImGui::Image(TownMapPass.m_vImGuiPase[i], ImVec2{ 150,150 });
+				}
+				ImGui::SliderFloat("kExposure", &TownMapCB.KExposure, 0.f, 20.f, "%.5f");
+				ImGui::SliderFloat("kBloom", &TownMapCB.KBloom, 0.f, 10.f, "%.5f");
+				ImGui::SliderInt("colorSpace", &TownMapCB.ColorSpace, 0, 3);
+			}
+			ImGui::GetIO().FontGlobalScale;
 		
 
 			ImGui::End();
@@ -1674,8 +1838,8 @@ HRESULT InitDevice()
 
 	CBLight LD;
 	LD.lightDir = lightDir;
-	LD.lightPointAtt = lightAtt;
-	LD.lightPointPos = lightPos;
+	//LD.lightPointAtt = lightAtt;
+	//LD.lightPointPos = lightPos;
 
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightDir.P_Buffer, 0, NULL, &LD, 0, 0);
 #endif
@@ -1804,6 +1968,67 @@ HRESULT InitDevice()
 	ImGui_ImplDX11_Init(DeviceChido->g_pd3dDevice, DeviceContextChido->g_pImmediateContext);
 	ImGui::StyleColorsDark();
 
+	//Initialize  Rasterizer state
+	D3D11_RASTERIZER_DESC	RaStaDesc;
+	ZeroMemory(&RaStaDesc, sizeof(RaStaDesc));
+	RaStaDesc.FillMode = D3D11_FILL_SOLID;
+	RaStaDesc.CullMode = D3D11_CULL_FRONT;
+	RaStaDesc.FrontCounterClockwise = true;
+
+	hr = DeviceChido->g_pd3dDevice->CreateRasterizerState(&RaStaDesc, &g_GBufferRaSta);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	RaStaDesc.CullMode = D3D11_CULL_NONE;
+
+	hr = DeviceChido->g_pd3dDevice->CreateRasterizerState(&RaStaDesc, &g_SADRaSta);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	//Initialize Depth stencil state
+
+	D3D11_DEPTH_STENCIL_DESC DepStenDesc;
+	ZeroMemory(&DepStenDesc, sizeof(DepStenDesc));
+	DepStenDesc.StencilEnable = true;
+	DepStenDesc.DepthEnable = true;
+	
+	DepStenDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	DepStenDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	DepStenDesc.StencilReadMask = 0xFF;
+	DepStenDesc.StencilWriteMask = 0xFF;
+	DepStenDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	DepStenDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	DepStenDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	DepStenDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	DepStenDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	hr = DeviceChido->g_pd3dDevice->CreateDepthStencilState(&DepStenDesc, &g_GBufferDepStenSta);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	DepStenDesc.StencilEnable = false;
+	DepStenDesc.DepthEnable = false;
+
+	hr = DeviceChido->g_pd3dDevice->CreateDepthStencilState(&DepStenDesc, &g_SADDepStenSta);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	///////////PASES
 	//gbuffer
 
 	RefScene = GraphicApi.ChargeMesh("Modelo/Rana/Battletoad_posed.obj", &ScMana, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "Modelo/Rana/battletoad_d.dds", "Modelo/Rana/battletoad_m.dds", "Modelo/Rana/battletoad_n.dds");
@@ -1819,7 +2044,7 @@ HRESULT InitDevice()
 
 	CompileShaders(L"GBuffer.fx", "vs_main", "ps_main", GBuffer.m_VertShader, GBuffer.m_PixShader, GBuffer.m_IntLay);
 
-	GBuffer.initDX(PassD);
+	GBuffer.initDX(PassD, 1);
 
 	//ambient oclussion
 	PassD.RenTarViewCount = 1;
@@ -1829,7 +2054,7 @@ HRESULT InitDevice()
 
 	GraphicApi.ChargeMesh("Modelo/ScreenAlignedQuad.3ds", &ScManaAlinequad, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
 
-	AmbientOclusionPase.initDX(PassD);
+	AmbientOclusionPase.initDX(PassD, 1);
 
 	C_Buffer_DESC BufferAmbient;
 	BufferAmbient.Usage = C_USAGE_DEFAULT;
@@ -1843,21 +2068,22 @@ HRESULT InitDevice()
 	if (FAILED(hr))
 		return hr;
 
-	CBSuperSamplerAmbientOclusion CBAmbient;
-	CBAmbient.KIntensity = 8.2f;
-	CBAmbient.KScale = 0.5f;
-	CBAmbient.KBias = 0.1f;
-	CBAmbient.KSample = 2.4f;
+	
+	AmbientOclusionCB.KIntensity = 8.2f;
+	AmbientOclusionCB.KScale = 0.5f;
+	AmbientOclusionCB.KBias = 0.1f;
+	AmbientOclusionCB.KSample = 2.4f;
 
-	DeviceContextChido->g_pImmediateContext->UpdateSubresource(AmbientOclusionBuffer.P_Buffer, 0, NULL, &CBAmbient, 0, 0);
-
-	AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(2));
-	AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(0));
+	//DeviceContextChido->g_pImmediateContext->UpdateSubresource(AmbientOclusionBuffer.P_Buffer, 0, NULL, &CBAmbient, 0, 0);
+	AmbientOclusionPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[0]);
+	AmbientOclusionPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[2]);
+	//AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(2));
+	//AmbientOclusionPase.FillShaderResource(DeviceChido, GBuffer.m_vTexts.at(0));
 
 	//sky box
 	CompileShaders(L"Skybox.fx", "vs_main", "ps_main", SkyBoxPase.m_VertShader, SkyBoxPase.m_PixShader, SkyBoxPase.m_IntLay);
 
-	SkyBoxPase.initDX(PassD);
+	SkyBoxPase.initDX(PassD, 1);
 
 	GraphicApi.ChargeMesh("Modelo/Sphere.3ds", &ScManaSkyBox, GraphicApi.m_Model, DeviceContextChido, DeviceChido, RefImporter, "", "", "");
 
@@ -1886,6 +2112,380 @@ HRESULT InitDevice()
 	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(Texture2D, &ShReViDesc, &ScManaSkyBox.GetMesh(0)->m_Materials->m_TexDif);
 	if (FAILED(hr))
 		return hr;
+
+	//Light
+	PassD.RenTarViewCount = 1;
+	LightPase.initDX(PassD, 1);
+
+	ID3D11Texture2D* IrrTex2D;
+
+	hr = D3DX11CreateTextureFromFile(DeviceChido->g_pd3dDevice, L"Models/grace_diffuse_cube.dds", &ImageLoadInfo, 0, (ID3D11Resource**)&IrrTex2D, 0);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	hr = DeviceChido->g_pd3dDevice->CreateShaderResourceView(IrrTex2D, &ShReViDesc, &LightIrra);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[4]);
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[1]);
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[2]);
+	LightPase.m_vShadResView.push_back(GBuffer.m_vImGuiPase[3]);
+	LightPase.m_vShadResView.push_back(SkyBoxPase.m_vImGuiPase[0]);
+	LightPase.m_vShadResView.push_back(LightIrra);
+
+	CompileShaders(L"Light.fx", "vs_main", "ps_main", LightPase.m_VertShader, LightPase.m_PixShader, LightPase.m_IntLay);
+
+	LightCB.KDiffuse = 1.f;
+	LightCB.KAmbient = .028f;
+	LightCB.KSpecular = 2.f;
+	LightCB.SpecularPower = 16.f;
+	LightCB.lightDir = { -1, -1, -1, 0 };
+	LightCB.lightColor = { .97f, .94f, 1.f, 1.f };
+
+	C_Buffer_DESC LiBuff;
+	LiBuff.Usage = C_USAGE_DEFAULT;
+	LiBuff.ByteWidth = sizeof(CBLight);
+	LiBuff.BindFlags = 4;
+	LiBuff.CPUAccessFlags = 0;
+
+	LightBuffer.init(LiBuff);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&LightBuffer.bd, NULL, &LightBuffer.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	//Luminicencia
+	PassD.RenTarViewCount = 1;
+	PassD.TexStruct.MipLevels = 5;
+	PassD.TexStruct.MiscFlags = 0x1L;
+	LumiPase.initDX(PassD, -1);
+
+	LumiPase.m_vShadResView.push_back(LumiPase.m_vImGuiPase[0]);
+
+	CompileShaders(L"Luminicencia.fx", "vs_main", "ps_main", LumiPase.m_VertShader, LumiPase.m_PixShader, LumiPase.m_IntLay);
+
+	//Bright
+	BrightPase.initDX(PassD, -1);
+
+	BrightPase.m_vShadResView.push_back(LumiPase.m_vImGuiPase[0]);
+	BrightPase.m_vShadResView.push_back(LightPase.m_vImGuiPase[0]);
+	CompileShaders(L"Bright.fx", "vs_main", "ps_main", BrightPase.m_VertShader, BrightPase.m_PixShader, BrightPase.m_IntLay);
+
+	C_Buffer_DESC BriDesc;
+	BriDesc.Usage = C_USAGE_DEFAULT;
+	BriDesc.ByteWidth = sizeof(CBBright);
+	BriDesc.BindFlags = 4;
+	BriDesc.CPUAccessFlags = 0;
+
+	BrightBuffer.init(BriDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&BrightBuffer.bd, NULL, &BrightBuffer.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	BrightCB.MipLevel = 0;
+	BrightCB.Threshold.x = 0.16f;
+
+	//Blur 1 H
+	Blur1_H.initDX(PassD, -1);
+	Blur1_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+
+	CompileShaders(L"BlurH.fx", "vs_main", "ps_main", Blur1_H.m_VertShader, Blur1_H.m_PixShader, Blur1_H.m_IntLay);
+
+	C_Buffer_DESC BluHDesc;
+	BluHDesc.Usage = C_USAGE_DEFAULT;
+	BluHDesc.ByteWidth = sizeof(CBBlur);
+	BluHDesc.BindFlags = 4;
+	BluHDesc.CPUAccessFlags = 0;
+
+	Blur1Buffer_H.init(BluHDesc);
+
+	
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur1Buffer_H.bd, NULL, &Blur1Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur1CB_H.MipLevel = 4;
+	Blur1CB_H.Viewport.x = width;
+
+	//Blur 1 V
+	Blur1_V.initDX(PassD, -1);
+	Blur1_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+
+	CompileShaders(L"BlurV.fx", "vs_main", "ps_main", Blur1_V.m_VertShader, Blur1_V.m_PixShader, Blur1_V.m_IntLay);
+
+	Blur1Buffer_V.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur1Buffer_V.bd, NULL, &Blur1Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur1CB_V.MipLevel = 4;
+	Blur1CB_V.Viewport.x = height;
+
+	//Fill Bright1  
+	FillBright_1.initDX(PassD, -1);
+
+	FillBright_1.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_1.m_vShadResView.push_back(Blur1_H.m_vImGuiPase[0]);
+	FillBright_1.m_vShadResView.push_back(Blur1_V.m_vImGuiPase[0]);
+
+	CompileShaders(L"FillBright.fx", "vs_main", "ps_main", FillBright_1.m_VertShader, FillBright_1.m_PixShader, FillBright_1.m_IntLay);
+
+	C_Buffer_DESC FillBriDesc;
+	FillBriDesc.Usage = C_USAGE_DEFAULT;
+	FillBriDesc.ByteWidth = sizeof(CBFillBright);
+	FillBriDesc.BindFlags = 4;
+	FillBriDesc.CPUAccessFlags = 0;
+
+	FillBrightBuffer_1.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_1.bd, NULL, &FillBrightBuffer_1.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	FillBrightCB_1.MipLevel.x = 3;
+
+	//Blur 2 H
+	Blur2_H.initDX(PassD, -1);
+
+	Blur2_H.m_VertShader = Blur1_H.m_VertShader;
+	Blur2_H.m_PixShader = Blur1_H.m_PixShader;
+
+	Blur2_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+
+	Blur2Buffer_H.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur2Buffer_H.bd, NULL, &Blur2Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur2CB_H.MipLevel = 3;
+	Blur2CB_H.Viewport.x = width;
+
+	//Blur 2 V
+	PassD.RenTarViewCount = 0;
+	Blur2_V.initDX(PassD, -1);
+
+	Blur2_V.m_VertShader = Blur1_V.m_VertShader;
+	Blur2_V.m_PixShader = Blur1_V.m_PixShader;
+
+	Blur2_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur2_V.m_vImGuiPase.push_back(Blur1_V.m_vImGuiPase[0]);
+	Blur2_V.m_vRenTarView.push_back(Blur1_V.m_vRenTarView[0]);
+
+	Blur2Buffer_V.init(BluHDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur2Buffer_V.bd, NULL, &Blur2Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur2CB_V.MipLevel = 3;
+	Blur2CB_V.Viewport.x = height;
+
+	//Fill Bright 2  
+
+	FillBright_2.initDX(PassD, -1);
+
+	FillBright_2.m_VertShader = FillBright_1.m_VertShader;
+	FillBright_2.m_PixShader = FillBright_1.m_PixShader;
+
+	FillBright_2.m_vImGuiPase.push_back(FillBright_1.m_vImGuiPase[0]);
+	FillBright_2.m_vRenTarView.push_back(FillBright_1.m_vRenTarView[0]);
+
+	FillBright_2.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_2.m_vShadResView.push_back(Blur2_H.m_vImGuiPase[0]);
+	FillBright_2.m_vShadResView.push_back(Blur2_V.m_vImGuiPase[0]);
+
+	FillBrightBuffer_2.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_2.bd, NULL, &FillBrightBuffer_2.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	FillBrightCB_2.MipLevel.x = 2;
+
+	//Blur 3 H
+	Blur3_H.initDX(PassD, -1);
+
+	Blur3_H.m_VertShader = Blur2_H.m_VertShader;
+	Blur3_H.m_PixShader = Blur2_H.m_PixShader;
+
+	Blur3_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur3_H.m_vImGuiPase.push_back(Blur2_H.m_vImGuiPase[0]);
+	Blur3_H.m_vRenTarView.push_back(Blur2_H.m_vRenTarView[0]);
+
+	Blur3Buffer_H.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur3Buffer_H.bd, NULL, &Blur3Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur3CB_H.MipLevel = 2;
+	Blur3CB_H.Viewport.x = width;
+
+	//Blur 3 V
+	
+	Blur3_V.initDX(PassD, -1);
+
+	Blur3_V.m_VertShader = Blur2_V.m_VertShader;
+	Blur3_V.m_PixShader = Blur2_V.m_PixShader;
+
+	Blur3_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur3_V.m_vImGuiPase.push_back(Blur2_V.m_vImGuiPase[0]);
+	Blur3_V.m_vRenTarView.push_back(Blur2_V.m_vRenTarView[0]);
+
+	Blur3Buffer_V.init(BluHDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur3Buffer_V.bd, NULL, &Blur3Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur3CB_V.MipLevel = 2;
+	Blur3CB_V.Viewport.x = height;
+
+	//Fill Bright 3
+
+	FillBright_3.initDX(PassD, 5);
+
+	FillBright_3.m_VertShader = FillBright_2.m_VertShader;
+	FillBright_3.m_PixShader = FillBright_2.m_PixShader;
+
+	FillBright_3.m_vImGuiPase.push_back(FillBright_2.m_vImGuiPase[0]);
+	FillBright_3.m_vRenTarView.push_back(FillBright_2.m_vRenTarView[0]);
+
+	FillBright_3.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_3.m_vShadResView.push_back(Blur3_H.m_vImGuiPase[0]);
+	FillBright_3.m_vShadResView.push_back(Blur3_V.m_vImGuiPase[0]);
+
+	FillBrightBuffer_3.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_3.bd, NULL, &FillBrightBuffer_3.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	FillBrightCB_3.MipLevel.x = 1;
+
+	//Blur 4 H
+	Blur4_H.initDX(PassD, 5);
+
+	Blur4_H.m_VertShader = Blur3_H.m_VertShader;
+	Blur4_H.m_PixShader = Blur3_H.m_PixShader;
+
+	Blur4_H.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur4_H.m_vImGuiPase.push_back(Blur3_H.m_vImGuiPase[0]);
+	Blur4_H.m_vRenTarView.push_back(Blur3_H.m_vRenTarView[0]);
+
+	Blur4Buffer_H.init(BluHDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur4Buffer_H.bd, NULL, &Blur4Buffer_H.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur4CB_H.MipLevel = 1;
+	Blur4CB_H.Viewport.x = width;
+
+	//Blur 4 V
+
+	Blur4_V.initDX(PassD, -1);
+
+	Blur4_V.m_VertShader = Blur3_V.m_VertShader;
+	Blur4_V.m_PixShader = Blur3_V.m_PixShader;
+
+	Blur4_V.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	Blur4_V.m_vImGuiPase.push_back(Blur3_V.m_vImGuiPase[0]);
+	Blur4_V.m_vRenTarView.push_back(Blur3_V.m_vRenTarView[0]);
+
+	Blur4Buffer_V.init(BluHDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&Blur4Buffer_V.bd, NULL, &Blur4Buffer_V.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	Blur4CB_V.MipLevel = 2;
+	Blur4CB_V.Viewport.x = height;
+
+	//Fill Bright 4
+
+	FillBright_4.initDX(PassD, -1);
+
+	FillBright_4.m_VertShader = FillBright_3.m_VertShader;
+	FillBright_4.m_PixShader = FillBright_3.m_PixShader;
+
+	FillBright_4.m_vImGuiPase.push_back(FillBright_3.m_vImGuiPase[0]);
+	FillBright_4.m_vRenTarView.push_back(FillBright_3.m_vRenTarView[0]);
+
+	FillBright_4.m_vShadResView.push_back(BrightPase.m_vImGuiPase[0]);
+	FillBright_4.m_vShadResView.push_back(Blur4_H.m_vImGuiPase[0]);
+	FillBright_4.m_vShadResView.push_back(Blur4_V.m_vImGuiPase[0]);
+
+	FillBrightBuffer_4.init(FillBriDesc);
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&FillBrightBuffer_4.bd, NULL, &FillBrightBuffer_4.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	FillBrightCB_4.MipLevel.x = 0;
+
+	//Town map
+
+	PassD.RenTarViewCount = 1;
+	PassD.TexStruct.MiscFlags = 0;
+	PassD.TexStruct.MipLevels = 1;
+
+	TownMapPass.initDX(PassD, 1);
+
+	CompileShaders(L"ToneMap.fx", "vs_main", "ps_main", TownMapPass.m_VertShader, TownMapPass.m_PixShader, TownMapPass.m_IntLay);
+
+	TownMapPass.m_vShadResView.push_back(LightPase.m_vImGuiPase[0]);
+	TownMapPass.m_vShadResView.push_back(AmbientOclusionPase.m_vImGuiPase[0]);
+	TownMapPass.m_vShadResView.push_back(FillBright_4.m_vImGuiPase[0]);
+
+	C_Buffer_DESC TownDesc;
+	TownDesc.Usage = C_USAGE_DEFAULT;
+	TownDesc.ByteWidth = sizeof(CBTownMap);
+	TownDesc.BindFlags = 4;
+	TownDesc.CPUAccessFlags = 0;
+
+	TownMapBuffer.init(TownDesc);
+
+	hr = DeviceChido->g_pd3dDevice->CreateBuffer(&TownMapBuffer.bd, NULL, &TownMapBuffer.P_Buffer);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	TownMapCB.ColorSpace = 2;
+	TownMapCB.KBloom = .3f;
+	TownMapCB.KExposure = 3.2f;
 
 #endif
 	
@@ -2553,8 +3153,8 @@ void Render()
 
 	CBLight LDR;
 	LDR.lightDir = lightDir;
-	LDR.lightPointAtt = lightAtt;
-	LDR.lightPointPos = lightPos;
+	//LDR.lightPointAtt = lightAtt;
+	//LDR.lightPointPos = lightPos;
 	DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightDir.P_Buffer, 0, NULL, &LDR, 0, 0);
 
 	
@@ -2586,15 +3186,19 @@ void Render()
 	//ambient oclusion
 
 	AmbientOclusionPase.SetPass(&G_PDepthStencilView);
-	AmbientOclusionPase.Clear(ClearColor, &G_PDepthStencilView);
+	//AmbientOclusionPase.Clear(ClearColor, &G_PDepthStencilView);
 
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(AmbientOclusionBuffer.P_Buffer, 0, NULL, &AmbientOclusionCB, 0, 0);
 	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &AmbientOclusionBuffer.P_Buffer);
+
+	AmbientOclusionPase.SetRasState(g_SADRaSta);
+	AmbientOclusionPase.SetDepthSten(g_SADDepStenSta, 0);
 
 	AmbientOclusionPase.Draw(&ScManaAlinequad);
 
 	//sky box
 	SkyBoxPase.SetPass(&G_PDepthStencilView);
-	SkyBoxPase.Clear(ClearColor, &G_PDepthStencilView);
+	//SkyBoxPase.Clear(ClearColor, &G_PDepthStencilView);
 
 	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(0, 1, &MainCamera->g_pCBNeverChanges.P_Buffer);
 	DeviceContextChido->g_pImmediateContext->VSSetConstantBuffers(1, 1, &MainCamera->g_pCBChangeOnResize.P_Buffer);
@@ -2602,10 +3206,170 @@ void Render()
 
 	SkyBoxPase.Draw(&ScManaSkyBox);
 
+
+	//Light
+
+	LightPase.SetPass(&G_PDepthStencilView);
+	LightCB.VViewPos = { MainCamera->GetAt().x, MainCamera->GetAt().y, MainCamera->GetAt().z, 0 };
+
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(LightBuffer.P_Buffer, 0, NULL, &LightCB, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &LightBuffer.P_Buffer);
+
+	LightPase.Draw(&ScManaAlinequad);
+
+	//Luminancia
+
+	LumiPase.SetPass(&G_PDepthStencilView);
+	LumiPase.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(LumiPase.m_vImGuiPase[0]);
+
+	//Bright
+
+	BrightPase.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(BrightBuffer.P_Buffer, 0, NULL, &BrightCB, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &BrightBuffer.P_Buffer);
+
+	BrightPase.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(BrightPase.m_vImGuiPase[0]);
+
+	//Blur H 1
+
+	Blur1_H.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur1Buffer_H.P_Buffer, 0, NULL, &Blur1CB_H, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur1Buffer_H.P_Buffer);
+
+	Blur1_H.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur1_H.m_vImGuiPase[0]);
+
+	//Blur V 1
+
+	Blur1_V.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur1Buffer_V.P_Buffer, 0, NULL, &Blur1CB_V, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur1Buffer_V.P_Buffer);
+
+	Blur1_V.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur1_V.m_vImGuiPase[0]);
+
+	//FillBright1
+
+	FillBright_1.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(FillBrightBuffer_1.P_Buffer, 0, NULL, &	FillBrightCB_1, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &FillBrightBuffer_1.P_Buffer);
+
+	FillBright_1.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(FillBright_1.m_vImGuiPase[0]);
+
+	//Blur H 2
+
+	Blur2_H.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur2Buffer_H.P_Buffer, 0, NULL, &Blur2CB_H, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur2Buffer_H.P_Buffer);
+
+	Blur2_H.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur2_H.m_vImGuiPase[0]);
+
+	//Blur V 2
+
+	Blur2_V.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur2Buffer_V.P_Buffer, 0, NULL, &Blur2CB_V, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur2Buffer_V.P_Buffer);
+
+	Blur2_V.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur2_V.m_vImGuiPase[0]);
+
+	//FillBright2
+
+	FillBright_2.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(FillBrightBuffer_2.P_Buffer, 0, NULL, &FillBrightCB_2, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &FillBrightBuffer_2.P_Buffer);
+
+	FillBright_2.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(FillBright_2.m_vImGuiPase[0]);
+
+	//Blur H 3
+
+	Blur3_H.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur3Buffer_H.P_Buffer, 0, NULL, &Blur3CB_H, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur3Buffer_H.P_Buffer);
+
+	Blur3_H.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur3_H.m_vImGuiPase[0]);
+
+	//Blur V 3
+
+	Blur3_V.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur3Buffer_V.P_Buffer, 0, NULL, &Blur3CB_V, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur3Buffer_V.P_Buffer);
+
+	Blur3_V.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur3_V.m_vImGuiPase[0]);
+
+	//FillBright3
+
+	FillBright_3.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(FillBrightBuffer_3.P_Buffer, 0, NULL, &FillBrightCB_3, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &FillBrightBuffer_3.P_Buffer);
+
+	FillBright_3.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(FillBright_3.m_vImGuiPase[0]);
+
+	//Blur H 4
+
+	Blur4_H.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur4Buffer_H.P_Buffer, 0, NULL, &Blur4CB_H, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur4Buffer_H.P_Buffer);
+
+	Blur4_H.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur4_H.m_vImGuiPase[0]);
+
+	//Blur V 4
+
+	Blur4_V.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(Blur4Buffer_V.P_Buffer, 0, NULL, &Blur4CB_V, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &Blur4Buffer_V.P_Buffer);
+
+	Blur4_V.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(Blur4_V.m_vImGuiPase[0]);
+
+	//FillBright4
+
+	FillBright_4.SetPass(&G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(FillBrightBuffer_4.P_Buffer, 0, NULL, &FillBrightCB_4, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &FillBrightBuffer_4.P_Buffer);
+
+	FillBright_4.Draw(&ScManaAlinequad);
+
+	DeviceContextChido->g_pImmediateContext->GenerateMips(FillBright_4.m_vImGuiPase[0]);
+
+	//Town Map
+
+	TownMapPass.SetPass(&G_PDepthStencilView);
+	TownMapPass.Clear(ClearColor, &G_PDepthStencilView);
+	DeviceContextChido->g_pImmediateContext->UpdateSubresource(TownMapBuffer.P_Buffer, 0, NULL, &TownMapCB, 0, 0);
+	DeviceContextChido->g_pImmediateContext->PSSetConstantBuffers(0, 1, &TownMapBuffer.P_Buffer);
+
+	TownMapPass.Draw(&ScManaAlinequad);
+
 	//////////
 
 	DeviceContextChido->g_pImmediateContext->OMSetRenderTargets(1, &G_PRenderTargetView.g_pRenderTargetView, G_PDepthStencilView.g_pDepthStencilView);
 	DeviceContextChido->g_pImmediateContext->ClearRenderTargetView(G_PRenderTargetView.g_pRenderTargetView, ClearColor);
+	DeviceContextChido->g_pImmediateContext->ClearDepthStencilView(G_PDepthStencilView.g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.f, 0);
+
+	TownMapPass.Draw(&ScManaAlinequad);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

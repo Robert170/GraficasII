@@ -119,5 +119,23 @@
     <FxCompile Include="Skybox.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Light.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Luminicencia.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="BlurH.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="BlurV.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Bright.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="FillBright.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

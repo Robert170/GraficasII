@@ -5,7 +5,7 @@ CPase::CPase()
 	m_DevCont = nullptr;
 }
 
-int CPase::initDX(PASSE_DIRECTX_STRUCT & _C_Pase_DESC)
+int CPase::initDX(PASSE_DIRECTX_STRUCT & _C_Pase_DESC, int MipLevel)
 {
 #if defined(D3D11)
 
@@ -49,7 +49,7 @@ int CPase::initDX(PASSE_DIRECTX_STRUCT & _C_Pase_DESC)
 		ShReView.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 		ShReView.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		ShReView.Texture2D.MostDetailedMip = 0;
-		ShReView.Texture2D.MipLevels = 1;
+		ShReView.Texture2D.MipLevels = MipLevel;
 
 		ID3D11ShaderResourceView* Srv;
 
@@ -60,7 +60,8 @@ int CPase::initDX(PASSE_DIRECTX_STRUCT & _C_Pase_DESC)
 			return -1;
 		}
 		m_vImGuiPase.push_back(Srv);
-		_C_Pase_DESC.DevStruc->g_pd3dDevice->CreateRasterizerState(&_C_Pase_DESC.RDStateStruct, &m_RasState);	
+
+		//_C_Pase_DESC.DevStruc->g_pd3dDevice->CreateRasterizerState(&_C_Pase_DESC.RDStateStruct, &m_RasState);	
 	}
 #else 
 
@@ -80,8 +81,16 @@ void CPase::render()
 void CPase::SetRenderTarget(CDepthStencilView* DevStV)
 {
 #ifdef D3D11
-	m_DevCont->g_pImmediateContext->OMSetRenderTargets(m_vRenTarView.size(), &m_vRenTarView[0], DevStV->g_pDepthStencilView);
-	m_DevCont->g_pImmediateContext->RSSetState(m_RasState);
+	if (DevStV)
+	{
+		m_DevCont->g_pImmediateContext->OMSetRenderTargets(m_vRenTarView.size(), &m_vRenTarView[0], DevStV->g_pDepthStencilView);
+	}
+	else
+	{
+		m_DevCont->g_pImmediateContext->OMSetRenderTargets(m_vRenTarView.size(), &m_vRenTarView[0], NULL);
+	}
+	
+	//m_DevCont->g_pImmediateContext->RSSetState(m_RasState);
 #endif // D3D1
 }
 
@@ -169,6 +178,77 @@ void CPase::FillShaderResource(CDevice* Dev, CTexture2D* Text)
 	}
 
 	m_vShadResView.push_back(SRV);
+}
+
+void CPase::FrTexture(CTexture2D* Text, CDevice* Dev)
+{
+	HRESULT hr;
+	D3D11_RENDER_TARGET_VIEW_DESC RenTarViewDesc;
+	ZeroMemory(&RenTarViewDesc, sizeof(RenTarViewDesc));
+	RenTarViewDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	RenTarViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	RenTarViewDesc.Texture2D.MipSlice = 0;
+
+	ID3D11RenderTargetView* RenTarView;
+	hr = Dev->g_pd3dDevice->CreateRenderTargetView(Text->m_pTexture, &RenTarViewDesc, &RenTarView);
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	m_vRenTarView.push_back(RenTarView);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC ShaResViewDesc;
+	ShaResViewDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	ShaResViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	ShaResViewDesc.Texture2D.MostDetailedMip = 0;
+	ShaResViewDesc.Texture2D.MipLevels = 1;
+
+	ID3D11ShaderResourceView* ShaResView;
+
+	hr = Dev->g_pd3dDevice->CreateShaderResourceView(Text->m_pTexture, &ShaResViewDesc, &ShaResView);
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	m_vImGuiPase.push_back(ShaResView);
+}
+
+void CPase::SetRasState(ID3D11RasterizerState* RasState)
+{
+	m_DevCont->g_pImmediateContext->RSSetState(RasState);
+}
+
+void CPase::SetDepthSten(ID3D11DepthStencilState* DevStSt, UINT Val )
+{
+	m_DevCont->g_pImmediateContext->OMSetDepthStencilState(DevStSt, Val);
+}
+
+void CPase::ReleasePase()
+{
+	for (int i = 0; i < m_vTexts.size(); i++)
+	{
+		m_vTexts[i]->m_pTexture->Release();
+		m_vRenTarView[i]->Release();
+		m_vImGuiPase[i]->Release();
+	}
+
+	m_vTexts.clear();
+	m_vRenTarView.clear();
+	m_vImGuiPase.clear();
+
+	ClearShaders();
+}
+
+void CPase::ClearShaders()
+{
+	for (int i = 0; i < m_vShadResView.size(); i++)
+	{
+		m_vShadResView[i] = nullptr;
+	}
+	m_vShadResView.clear();
 }
 
 

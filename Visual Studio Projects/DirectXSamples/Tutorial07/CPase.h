@@ -28,6 +28,7 @@ struct PASSE_DIRECTX_STRUCT
 	CDevice* DevStruc;
 	unsigned int RenTarViewCount;
 	C_Texture2D_DESC TexStruct;
+	CViewport* ViewportStruc;
 
 #ifdef D3D11
 	D3D11_RASTERIZER_DESC RDStateStruct;
@@ -87,9 +88,10 @@ public:
 	//para render targert de otros pases
 	std::vector<ID3D11ShaderResourceView*> m_vShadResView;
 
+	//para mostrar en ImUi
 	std::vector<ID3D11ShaderResourceView*> m_vImGuiPase;
 
-	int initDX(PASSE_DIRECTX_STRUCT& _C_Pase_DESC);
+	int initDX(PASSE_DIRECTX_STRUCT& _C_Pase_DESC, int MipLevel);
 #endif
 
 	
@@ -98,8 +100,10 @@ public:
 
 
 #ifdef D3D11
-
+	//seteamos renders targets
 	void SetRenderTarget(CDepthStencilView* DevStV);
+
+	//seteamos shader
 	void SetShader();
 
 	//limpia la pantalla
@@ -108,6 +112,11 @@ public:
 	void Draw(CSceneManager* ScManger);
 	void SetPass(CDepthStencilView* DevStV);
 	void FillShaderResource(CDevice* Dev, CTexture2D* Text);
+	void FrTexture(CTexture2D* Text, CDevice* Dev);
+	void SetRasState(ID3D11RasterizerState* RasState);
+	void SetDepthSten(ID3D11DepthStencilState* DevStSt, UINT Val);
+	void ReleasePase();
+	void ClearShaders();
 #endif
 	
 };

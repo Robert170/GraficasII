@@ -962,11 +962,12 @@ struct CBLight
 	float SpecularPower;
 
 	//el light dir antes era un vec4
-	glm::vec3 lightDir;
+	glm::vec4 lightDir;
+	glm::vec4 lightColor;
 	glm::vec4 VViewPos;
 
-	glm::vec3 lightPointPos;
-	glm::vec4 lightPointAtt;
+	/*glm::vec3 lightPointPos;
+	glm::vec4 lightPointAtt;*/
 };
 
 struct CBBones
@@ -980,6 +981,31 @@ struct CBSuperSamplerAmbientOclusion
 	float KScale;
 	float KBias;
 	float KSample;
+};
+
+struct CBBright
+{
+	int MipLevel;
+	glm::vec3 Threshold;
+};
+
+struct CBBlur
+{
+	int MipLevel;
+	glm::vec3 Viewport;
+};
+
+struct CBFillBright
+{
+	glm::ivec4 MipLevel;
+};
+
+struct CBTownMap
+{
+	float KExposure;
+	float KBloom;
+	int ColorSpace;
+	float Filler;
 };
 
 
